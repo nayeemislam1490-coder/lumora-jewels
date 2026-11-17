@@ -1,0 +1,122 @@
+/* Product cards: white + champagne-gold with soft 3D depth.
+   Pure CSS (transform / opacity / individual scale+translate only) plus a tiny pointer handler
+   that is used for a desktop mouse only. Phones get the entrance animations and a press effect,
+   with no hover or tilt work. Everything is scoped to .card-3d so other sections are unaffected. */
+
+.card-3d {
+  position: relative;
+  display: flex;
+  isolation: isolate;
+  perspective: 900px;
+}
+
+.card-3d .card {
+  flex: 1;
+  min-width: 0;
+  color: #2a2218;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf6ec 100%);
+  border: 1px solid rgba(201, 164, 92, 0.5);
+  box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.5);
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.35s ease;
+}
+/* neutralise the old hover (it would stick after a tap on touch screens) */
+.card-3d .card:hover {
+  transform: none;
+  border-color: rgba(201, 164, 92, 0.5);
+  box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.5);
+}
+
+/* text */
+.card-3d .card-name { color: #2a2218; }
+.card-3d .card-code { color: #a9823a; }
+.card-3d .price { border-top: 1px solid rgba(201, 164, 92, 0.25); }
+.card-3d .price b { color: #8a6a2b; }
+.card-3d .price s { color: #9c927f; }
+.card-3d .card-add {
+  color: #7a5a22;
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(184, 146, 74, 0.7);
+}
+.card-3d .card-add:hover {
+  background: linear-gradient(135deg, #c9a45c 0%, #e6cd94 50%, #c9a45c 100%);
+  color: #2a2110;
+  border-color: #c9a45c;
+}
+.card-3d .card-add:active { transform: scale(0.97); }
+
+/* image: soft settle-in when the card scrolls into view */
+.card-3d .card-img { background: #f3e8d0; }
+.card-3d .card-img img {
+  scale: 1.1;
+  transition: scale 1.3s cubic-bezier(0.2, 0.7, 0.2, 1), translate 0.35s ease-out, opacity 0.5s ease;
+}
+.card-3d.is-in .card-img img { scale: 1; }
+.card-3d .card:hover .card-img img.first { transform: none; }
+
+/* champagne light sweep across the photo, once, as the card appears */
+.card-3d .card-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0) 38%, rgba(255, 247, 226, 0.65) 50%, rgba(255, 255, 255, 0) 62%);
+  transform: translateX(-120%);
+}
+.card-3d.is-in .card-img::after {
+  transform: translateX(120%);
+  transition: transform 1.4s cubic-bezier(0.3, 0.6, 0.2, 1) 0.35s;
+}
+
+/* desktop mouse only: lift, 3D tilt, image depth, glow */
+@media (hover: hover) and (pointer: fine) {
+  .card-3d::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 20px;
+    box-shadow: 0 28px 50px -16px rgba(212, 177, 106, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .card-3d:hover::after { opacity: 1; }
+  .card-3d:hover .card {
+    transform: translate3d(0, -8px, 0) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    border-color: #c9a45c;
+    will-change: transform;
+  }
+  .card-3d:hover.is-in .card-img img {
+    scale: 1.07;
+    translate: var(--tx, 0px) var(--ty, 0px);
+    transition: scale 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), translate 0.3s ease-out, opacity 0.5s ease;
+  }
+  .card-3d .card-img::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(115deg, rgba(255, 255, 255, 0) 38%, rgba(255, 247, 226, 0.55) 50%, rgba(255, 255, 255, 0) 62%);
+    transform: translateX(-120%);
+    transition: transform 0.01s;
+  }
+  .card-3d:hover .card-img::before {
+    transform: translateX(120%);
+    transition: transform 0.9s cubic-bezier(0.3, 0.6, 0.2, 1);
+  }
+}
+
+/* press feedback (touch and mouse) */
+.card-3d:active .card { transform: scale(0.985); transition-duration: 0.15s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-3d .card,
+  .card-3d .card-img img { transition: none; }
+  .card-3d .card-img img { scale: 1 !important; translate: none !important; }
+  .card-3d .card-img::before,
+  .card-3d .card-img::after { display: none; }
+  .card-3d:hover .card,
+  .card-3d:active .card { transform: none !important; }
+}

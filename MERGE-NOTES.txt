@@ -1,0 +1,10 @@
+Lumora Jewels merged project
+
+Merged from the original package.zip plus lumora-all-updates.zip and lumora-product-cards.zip.
+Claude update files were overlaid onto matching source paths. Existing products, assets, cart.jsx, Hero3D.jsx, and other original source files were retained.
+
+Important: node_modules and dist were intentionally excluded. On a PC with Node.js installed, open this folder in a terminal and run:
+  npm install
+  npm run build
+
+Only upload the contents of dist to Netlify after npm run build succeeds. Test the live site on desktop and Android, especially product details, add-to-cart, cart, checkout, and WhatsApp links.
