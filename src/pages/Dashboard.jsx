@@ -8,12 +8,13 @@ import {
   ChevronLeft, ChevronRight, Plus, Package, CheckCircle2, XCircle, Trophy,
   TrendingUp, TrendingDown, Trash2,
 } from "lucide-react";
-import { PRODUCTS, CATEGORIES } from "../products.js";
+import { CATEGORIES } from "../products.js";
 import { money } from "../config.js";
+import { supabase } from "../supabase.js";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "orders", label: "Orders", icon: ShoppingBag, badge: 30 },
+  { id: "orders", label: "Orders", icon: ShoppingBag },
   { id: "products", label: "Products", icon: Gem },
   { id: "customers", label: "Customers", icon: Users },
   { id: "analytics", label: "Analytics", icon: BarChart3 },
@@ -142,54 +143,105 @@ export default function Dashboard() {
   const [q, setQ] = useState("");
   const [channel, setChannel] = useState("All");
   const [fOpen, setFOpen] = useState(false);
-  const [sel, setSel] = useState(() => new Set(["VH-1041"]));
+  const [sel, setSel] = useState(() => new Set());
   const [slide, setSlide] = useState(0);
 
   const [orders, setOrders] = useState([]);
-  useEffect(() => {
-    const savedOrders = JSON.parse(localStorage.getItem("veloria_orders") || "[]");
-    if (savedOrders.length > 0) {
-      setOrders(savedOrders);
-    } else {
-      setOrders([
-        { id: "VH-1042", item: "Gold necklace set", date: "16/11/2026", price: 48500, ch: "Website" },
-        { id: "VH-1041", item: "Diamond stud earrings", date: "16/11/2026", price: 72000, ch: "Facebook" },
-        { id: "VH-1040", item: "Pearl bracelet", date: "15/11/2026", price: 12800, ch: "WhatsApp" },
-      ]);
+
+  const loadOrders = async () => {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Load orders failed:", error.message);
+      return;
     }
+
+    if (data) {
+      const mappedOrders = data.map((o) => ({
+        id: o.id,
+        item: o.item_text,
+        date: new Date(o.created_at).toLocaleDateString(),
+        price: o.total,
+        ch: o.channel || "Website",
+        status: o.status || "Processing",
+      }));
+      setOrders(mappedOrders);
+      if (mappedOrders.length > 0) {
+        setSel(new Set([mappedOrders[0].id]));
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
   }, []);
 
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem("veloria_admin_products");
-    return saved ? JSON.parse(saved) : PRODUCTS;
-  });
+  const changeStatus = async (id, status) => {
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    const { error } = await supabase
+      .from("orders")
+      .update({ status })
+      .eq("id", id);
+    if (error) {
+      console.error("Status update failed:", error.message);
+    }
+  };
+
+  // Supabase থেকে প্রোডাক্ট লোড করার ব্যবস্থা
+  const [products, setProducts] = useState([]);
+
+  const loadAdminProducts = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setProducts(data);
+    }
+  };
+
+  useEffect(() => {
+    loadAdminProducts();
+  }, []);
 
   const [newProd, setNewProd] = useState({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", image: "" });
 
-  const handleAddProduct = (e) => {
+  const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!newProd.name || !newProd.price) return;
-    const item = {
-      id: Date.now().toString(),
+    
+    const row = {
+      id: "p" + Date.now(),
       name: newProd.name,
-      price: Number(newProd.price),
       code: newProd.code || "LJ-" + Math.floor(100 + Math.random() * 900),
       category: newProd.category,
-      desc: "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty.",
+      price: Number(newProd.price),
+      description: "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty.",
       specs: ["100% Authentic Material", "Handcrafted finish", "Gift-ready packaging"],
       images: [newProd.image || "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600"]
     };
-    const updated = [item, ...products];
-    setProducts(updated);
-    localStorage.setItem("veloria_admin_products", JSON.stringify(updated));
+
+    const { error } = await supabase.from("products").insert([row]);
+    if (error) {
+      alert("Add product failed: " + error.message);
+      return;
+    }
+
+    setProducts([row, ...products]);
     setNewProd({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", image: "" });
-    alert("Product added successfully with category!");
+    alert("Product added successfully to Supabase!");
   };
 
-  const handleDeleteProduct = (id) => {
-    const updated = products.filter(p => String(p.id) !== String(id));
-    setProducts(updated);
-    localStorage.setItem("veloria_admin_products", JSON.stringify(updated));
+  const handleDeleteProduct = async (id) => {
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) {
+      alert("Could not delete: " + error.message);
+      return;
+    }
+    setProducts(products.filter((p) => String(p.id) !== String(id)));
   };
 
   const r = RANGES[range];
@@ -365,23 +417,20 @@ export default function Dashboard() {
                 <div>
                   <small>Total products</small>
                   <strong>{products.length}</strong>
-                  <Delta v={2.5} />
                 </div>
               </div>
               <div className="vd-card vd-kpi">
                 <span className="vd-ico"><CheckCircle2 size={18} /></span>
                 <div>
                   <small>Completed orders</small>
-                  <strong>{orders.length}</strong>
-                  <Delta v={2.5} />
+                  <strong>{orders.filter((o) => o.status === "Delivered").length}</strong>
                 </div>
               </div>
               <div className="vd-card vd-kpi">
                 <span className="vd-ico"><XCircle size={18} /></span>
                 <div>
                   <small>Canceled orders</small>
-                  <strong>0</strong>
-                  <Delta v={0} />
+                  <strong>{orders.filter((o) => o.status === "Cancelled").length}</strong>
                 </div>
               </div>
               <div className="vd-card vd-kpi">
@@ -389,7 +438,6 @@ export default function Dashboard() {
                 <div>
                   <small>Total Catalog</small>
                   <strong>{products.length}</strong>
-                  <Delta v={2.5} />
                 </div>
               </div>
             </section>
@@ -435,7 +483,7 @@ export default function Dashboard() {
                     <thead>
                       <tr>
                         <th><input type="checkbox" checked={allSel} onChange={toggleAll} aria-label="Select all" /></th>
-                        <th>Order ID</th><th>Item</th><th>Date</th><th>Price</th><th>Platform</th>
+                        <th>Order ID</th><th>Item</th><th>Date</th><th>Price</th><th>Platform</th><th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -453,11 +501,22 @@ export default function Dashboard() {
                                 <span className="vd-appdot" style={{ background: app.color }}>{app.tag}</span>{o.ch || "Website"}
                               </span>
                             </td>
+                            <td>
+                              <select
+                                value={o.status}
+                                onChange={(e) => changeStatus(o.id, e.target.value)}
+                                style={{ padding: "4px 8px", borderRadius: "8px", border: "1px solid var(--line)", background: "#fff", fontSize: "13px", cursor: "pointer" }}
+                              >
+                                <option>Processing</option>
+                                <option>Delivered</option>
+                                <option>Cancelled</option>
+                              </select>
+                            </td>
                           </tr>
                         );
                       })}
                       {rows.length === 0 && (
-                        <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--mut)" }}>No orders match. Clear the search or filter.</td></tr>
+                        <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--mut)" }}>No orders match. Clear the search or filter.</td></tr>
                       )}
                     </tbody>
                   </table>

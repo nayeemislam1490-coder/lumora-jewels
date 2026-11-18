@@ -10,6 +10,15 @@ import "../hero-mobile.css";
 
 const Hero3D = lazy(() => import("../components/Hero3D.jsx"));
 
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl")));
+  } catch (e) {
+    return false;
+  }
+}
+
 // Phones get a light SVG ring; the heavy 3D scene (three.js) is only downloaded on wider screens.
 const WIDE = "(min-width: 761px)";
 function useWide() {
@@ -28,6 +37,7 @@ const catImage = (cat) => PRODUCTS.find((p) => p.category === cat)?.images[0];
 export default function Home() {
   const heroRef = useRef(null);
   const wide = useWide();
+  const [canWebGL] = useState(hasWebGL());
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -65,16 +75,14 @@ export default function Home() {
             </div>
           </div>
           <div className="hero-3d">
-            {wide ? (
-              <>
-                <Suspense fallback={null}>
-                  <Hero3D />
-                </Suspense>
-                <div className="hero-hint">Move your mouse · Scroll</div>
-              </>
+            {canWebGL ? (
+              <Suspense fallback={<HeroArt />}>
+                <Hero3D />
+              </Suspense>
             ) : (
               <HeroArt />
             )}
+            {wide && canWebGL && <div className="hero-hint">Move your mouse · Scroll</div>}
           </div>
         </div>
       </section>

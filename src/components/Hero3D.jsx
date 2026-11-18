@@ -56,11 +56,13 @@ function Ring() {
 }
 
 export default function Hero3D() {
+  const lite = typeof window !== "undefined" && window.innerWidth < 768;
+
   return (
-    <Canvas camera={{ position: [0, 0.2, 5.6], fov: 38 }} dpr={[1, 1.75]} gl={{ alpha: true, antialias: true }}>
+    <Canvas camera={{ position: [0, 0.2, lite ? 6.6 : 5.6], fov: 38 }} dpr={lite ? [1, 1.5] : [1, 1.75]} gl={{ alpha: true, antialias: true }}>
       <ambientLight intensity={0.35} />
       <spotLight position={[4, 6, 5]} angle={0.5} penumbra={1} intensity={60} color="#fff1cf" />
-      <Environment resolution={256}>
+      <Environment resolution={lite ? 128 : 256}>
         <color attach="background" args={["#141c3a"]} />
         <Lightformer form="rect" intensity={6} color="#fff4d6" position={[0, 6, 3]} scale={[12, 3, 1]} />
         <Lightformer form="rect" intensity={3} color="#9bb8ff" position={[-6, 1, -4]} scale={[6, 6, 1]} rotation-y={Math.PI / 2} />
@@ -83,7 +85,7 @@ export default function Hero3D() {
         <Gem position={[-2.1, -1.5, 0]} size={0.17} color="#4b7dff" />
       </Float>
 
-      <Sparkles count={70} scale={[7, 5, 4]} size={3} speed={0.35} color="#F1DDA5" />
+      <Sparkles count={lite ? 30 : 70} scale={[7, 5, 4]} size={3} speed={0.35} color="#F1DDA5" />
     </Canvas>
   );
 }

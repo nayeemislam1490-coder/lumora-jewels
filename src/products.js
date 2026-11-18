@@ -1,12 +1,10 @@
-// ============================================================
-//  PRODUCTS  –  add, edit or remove products here.
-//  NOTE: names, descriptions and PRICES below are SAMPLES. Put your real ones.
-//  Images live in /public/images  (use "/images/file.jpg").
-// ============================================================
+import { supabase } from "./supabase.js";
+
 export const CATEGORIES = ["Necklaces", "Earrings", "Rings", "Sets"];
 
 const img = (n) => `/images/${n}.jpg`;
 
+// ফ্যালব্যাক বা অফলাইন প্রোডাক্ট লিস্ট (ডাটাবেজ কানেক্ট না থাকলে এগুলো দেখাবে)
 export const PRODUCTS = [
   {
     id: "sapphire-bloom-set",
@@ -163,5 +161,39 @@ export const PRODUCTS = [
     specs: ["Golden finish", "Adjustable slider chain"],
   },
 ];
+
+const toProduct = (r) => ({
+  id: r.id,
+  name: r.name,
+  code: r.code,
+  category: r.category,
+  price: Number(r.price),
+  oldPrice: r.old_price ? Number(r.old_price) : undefined,
+  badge: r.badge || undefined,
+  featured: !!r.featured,
+  short: r.short || "",
+  desc: r.description || "",
+  specs: r.specs || [],
+  images: r.images || [],
+});
+
+export async function loadProducts() {
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      return PRODUCTS;
+    }
+    const mapped = data.map(toProduct);
+    PRODUCTS.splice(0, PRODUCTS.length, ...mapped);
+    return mapped;
+  } catch (e) {
+    console.error("Load products failed:", e);
+    return PRODUCTS;
+  }
+}
 
 export const byId = (id) => PRODUCTS.find((p) => p.id === id);

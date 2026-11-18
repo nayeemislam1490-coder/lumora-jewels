@@ -1,117 +1,93 @@
-/* Mobile hero only (phones, up to 760px): white + champagne-gold theme.
-   Everything is scoped to .hero so no other section is affected. Desktop/tablet keep the original hero. */
-
 @media (max-width: 760px) {
+  /* পিসির মতো হুবহু ডিপ ব্লু ব্যাকগ্রাউন্ড এবং কালার থিম */
   .hero {
-    min-height: 0;
-    display: block;
-    text-align: center;
-    padding: 34px 0 46px;
-    color: #2a2218;
-    background:
-      radial-gradient(120% 55% at 88% 0%, rgba(212, 177, 106, 0.2) 0%, rgba(212, 177, 106, 0) 60%),
-      linear-gradient(180deg, #ffffff 0%, #fcf7ec 58%, #f4e9d2 100%);
-  }
-  .hero::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 3px;
-    background: var(--gold-grad);
-  }
-  .hero-grid { gap: 6px; }
-
-  .hero .eyebrow {
-    display: inline-flex;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    color: #9a7430;
-    font-size: 0.68rem;
-    letter-spacing: 0.32em;
+    text-align: center;
+    padding: 24px 16px 36px;
+    background: radial-gradient(circle at 50% 30%, #1a2342 0%, #0a0e1a 100%);
+    color: #ffffff;
   }
-  .hero .eyebrow::before,
-  .hero .eyebrow::after {
-    content: "";
-    width: 22px;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(184, 146, 74, 0), #b8924a);
+
+  /* পিসির গ্রিড বা কন্টেইনার ফ্লেক্স ঠিক করা */
+  .hero-grid {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
   }
-  .hero .eyebrow::after { transform: scaleX(-1); }
+
+  /* রিং বা থ্রি-ডি অ্যানিমেশনের অংশ (থ্রি-ডি লোড হওয়ার জন্য নির্দিষ্ট হাইট দেওয়া হয়েছে) */
+  .hero-3d {
+    height: 340px;
+    order: 0;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 260px;
+    display: block;
+  }
+
+  .hero-art {
+    width: 100%;
+    max-width: 260px;
+    margin: 0 auto;
+    display: block;
+  }
+
+  /* টেক্সট ও টাইটেল সেকশন */
+  .hero-content {
+    width: 100%;
+    text-align: center;
+  }
 
   .hero h1 {
-    color: #2a2218;
-    font-size: clamp(2.15rem, 9.4vw, 2.6rem);
-    line-height: 1.08;
-    margin: 14px 0 14px;
+    font-size: clamp(2rem, 7.5vw, 2.4rem);
+    line-height: 1.15;
+    margin: 10px 0 12px;
   }
-  .hero h1 em {
-    background: linear-gradient(135deg, #a9823a 0%, #c9a45c 45%, #b8924a 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
+
   .hero p {
-    color: #6a604f;
-    font-size: 0.98rem;
-    line-height: 1.6;
-    max-width: 34ch;
+    font-size: 0.92rem;
+    line-height: 1.5;
     margin-inline: auto;
+    max-width: 32ch;
   }
 
+  /* শপ বাটনগুলো */
   .hero .hero-cta {
-    display: grid;
-    grid-template-columns: 1.3fr 1fr;
+    display: flex;
+    justify-content: center;
     gap: 10px;
-    margin-top: 24px;
+    margin-top: 18px;
+    width: 100%;
   }
+
   .hero .hero-cta .btn {
-    min-height: 48px;
-    padding: 0 8px;
-    font-size: 0.84rem;
-    letter-spacing: 0.03em;
-    white-space: nowrap;
+    flex: 1;
+    max-width: 150px;
+    min-height: 44px;
+    font-size: 0.82rem;
   }
-  .hero .btn-gold {
-    background: linear-gradient(135deg, #c9a45c 0%, #e6cd94 50%, #c9a45c 100%);
-    color: #2a2110;
-    box-shadow: 0 6px 16px rgba(184, 146, 74, 0.28);
-  }
-  .hero .btn-ghost {
-    border-color: #b8924a;
-    color: #7a5a22;
-    background: rgba(255, 255, 255, 0.7);
-  }
-  .hero .btn:hover { transform: none; }
-  .hero .btn:active { transform: scale(0.98); }
 
+  /* নিচের স্ট্যাটস বা কাউন্টার */
   .hero .hero-stats {
-    gap: 0;
-    margin-top: 26px;
-    padding-top: 18px;
-    border-top: 1px solid rgba(184, 146, 74, 0.28);
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(212, 177, 106, 0.2);
   }
-  .hero .hero-stats > div { flex: 1; text-align: center; }
-  .hero .hero-stats > div + div { border-left: 1px solid rgba(184, 146, 74, 0.25); }
-  .hero .hero-stats b { font-size: 1.3rem; color: #8a6a2b; }
-  .hero .hero-stats span { font-size: 0.62rem; letter-spacing: 0.1em; color: #8b8272; }
 
-  .hero .hero-3d { height: auto; order: 0; margin-top: 8px; }
-  .hero-art { display: block; width: 100%; max-width: 300px; height: auto; margin-inline: auto; }
-}
+  .hero .hero-stats b {
+    font-size: 1.15rem;
+    color: #dfbe78;
+  }
 
-.hero-art .ha-star {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: ha-twinkle 3.2s ease-in-out infinite;
-}
-.hero-art g:nth-of-type(3) .ha-star { animation-delay: 1s; }
-.hero-art g:nth-of-type(4) .ha-star { animation-delay: 2s; }
-@keyframes ha-twinkle {
-  0%, 100% { opacity: 0.25; transform: scale(0.7); }
-  50% { opacity: 1; transform: scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-art .ha-star { animation: none; opacity: 0.8; }
+  .hero .hero-stats span {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+  }
 }

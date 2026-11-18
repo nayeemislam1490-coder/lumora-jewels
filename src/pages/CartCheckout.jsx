@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { SITE, money, hasPlaceholderWhatsapp } from "../config.js";
 import { useCart } from "../cart.jsx";
+import { supabase } from "../supabase.js";
 
 const ORDER_KEY = "lumora_last_order_v1";
 const loadOrder = () => {
@@ -141,21 +142,23 @@ export function Checkout() {
     const id = "LJ-" + Date.now().toString(36).toUpperCase().slice(-6);
     const totals = { subtotal: cart.subtotal, shipping: cart.shipping, total: cart.total };
     const url = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(buildMessage(id, cart.lines, totals))}`;
-    
-    // --- লাইভ অর্ডারের ডাটা লোকাল স্টোরেজে সেভ করার কোড ---
-    const newOrderRecord = {
-      id: id,
-      item: cart.lines.map(l => `${l.product.name} (x${l.qty})`).join(", "),
-      date: new Date().toLocaleDateString("en-GB"),
-      price: cart.total,
-      ch: "Website",
-      status: "Processing",
-      customer: f.name,
-      phone: f.phone
-    };
-    const existingOrders = JSON.parse(localStorage.getItem("veloria_orders") || "[]");
-    localStorage.setItem("veloria_orders", JSON.stringify([newOrderRecord, ...existingOrders]));
-    // ----------------------------------------------------
+
+    supabase
+      .from("orders")
+      .insert({
+        id,
+        items: cart.lines.map((l) => ({ id: l.id, name: l.product.name, price: l.product.price, qty: l.qty })),
+        item_text: cart.lines.map((l) => `${l.product.name} (x${l.qty})`).join(", "),
+        total: cart.total,
+        customer: f.name,
+        phone: f.phone,
+        address: f.address,
+        city: f.city,
+        payment: f.pay,
+      })
+      .then(({ error }) => {
+        if (error) console.error("Order save failed:", error.message);
+      });
 
     const order = { id, url, total: cart.total, pay: f.pay };
     setDone(order);

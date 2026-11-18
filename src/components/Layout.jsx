@@ -85,16 +85,13 @@ function Footer() {
             <ul>
               {SITE.address && <li>{SITE.address}</li>}
               <li><a href={`tel:${SITE.phone.replace(/\s/g, "")}`}>{SITE.phone}</a></li>
-              {SITE.email && <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>}
+              {SITE.email && <li><a href={`mailto:{SITE.email}`}>{SITE.email}</a></li>}
               <li>{SITE.hours}</li>
             </ul>
           </div>
         </div>
         <div className="copy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
           <span>© {new Date().getFullYear()} {SITE.name}. All rights reserved.</span>
-          <Link to="/dashboard" style={{ fontSize: "0.85rem", color: "var(--muted)", textDecoration: "underline" }}>
-            Admin Dashboard
-          </Link>
         </div>
       </div>
     </footer>

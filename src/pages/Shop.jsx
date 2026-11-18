@@ -7,20 +7,13 @@ import ProductCard from "../components/ProductCard.jsx";
 import Reveal from "../components/Reveal.jsx";
 
 function getActiveProducts() {
-  const saved = localStorage.getItem("veloria_admin_products");
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      return DEFAULT_PRODUCTS;
-    }
-  }
   return DEFAULT_PRODUCTS;
 }
 
 export function Shop() {
   const [params, setParams] = useSearchParams();
   const [sort, setSort] = useState("featured");
+  const [maxPrice, setMaxPrice] = useState(10000);
   const [products, setProducts] = useState(getActiveProducts());
   const cat = params.get("cat") || "All";
 
@@ -29,6 +22,8 @@ export function Shop() {
   }, []);
 
   let list = cat === "All" ? [...products] : products.filter((p) => p.category === cat);
+  list = list.filter((p) => p.price <= maxPrice);
+
   if (sort === "low") list.sort((a, b) => a.price - b.price);
   if (sort === "high") list.sort((a, b) => b.price - a.price);
 
@@ -44,7 +39,7 @@ export function Shop() {
       </div>
       <section className="section" style={{ paddingTop: 50 }}>
         <div className="container">
-          <div className="toolbar">
+          <div className="toolbar" style={{ flexWrap: "wrap", gap: "15px" }}>
             <div className="chips">
               {["All", ...CATEGORIES].map((c) => (
                 <button key={c} className={`chip ${cat === c ? "on" : ""}`} onClick={() => choose(c)}>
@@ -52,14 +47,31 @@ export function Shop() {
                 </button>
               ))}
             </div>
-            <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
-              <option value="featured">Sort: Featured</option>
-              <option value="low">Price: Low to High</option>
-              <option value="high">Price: High to Low</option>
-            </select>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "15px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.04)", padding: "6px 14px", borderRadius: "99px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <span style={{ fontSize: "13px", opacity: 0.85 }}>Max: <b>{money(maxPrice)}</b></span>
+                <input
+                  type="range"
+                  min="500"
+                  max="10000"
+                  step="100"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  style={{ accentColor: "var(--gold)", cursor: "pointer", width: "110px" }}
+                />
+              </div>
+
+              <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="featured">Sort: Featured</option>
+                <option value="low">Price: Low to High</option>
+                <option value="high">Price: High to Low</option>
+              </select>
+            </div>
           </div>
+
           {list.length === 0 ? (
-            <p className="lead">No products in this category yet.</p>
+            <p className="lead">No products match your filter criteria.</p>
           ) : (
             <div className="grid">
               {list.map((p) => (
@@ -171,10 +183,11 @@ function ProductView({ id }) {
                 Ask us on WhatsApp
               </a>
             </p>
-            <div className="assure">
-              <div><b>Delivery</b>{SITE.deliveryTime}</div>
-              <div><b>Exchange</b>{SITE.returnDays} days</div>
-              <div><b>Packaging</b>Gift-ready</div>
+            <div className="assure" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "24px", padding: "16px", background: "rgba(201, 162, 75, 0.08)", border: "1px solid rgba(201, 162, 75, 0.25)", borderRadius: "12px" }}>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🔒 Secure Checkout</b><span style={{ fontSize: "12px", opacity: 0.85 }}>Safe & encrypted order</span></div>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>💎 100% Authentic</b><span style={{ fontSize: "12px", opacity: 0.85 }}>Certified quality finish</span></div>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🚚 Fast Delivery</b><span style={{ fontSize: "12px", opacity: 0.85 }}>{SITE.deliveryTime}</span></div>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🔄 {SITE.returnDays}-Day Exchange</b><span style={{ fontSize: "12px", opacity: 0.85 }}>Gift-ready packaging</span></div>
             </div>
           </div>
         </div>
