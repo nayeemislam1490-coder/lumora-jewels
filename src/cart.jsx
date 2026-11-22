@@ -1,9 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useReducer } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useState } from "react";
 import { PRODUCTS } from "./products.js";
-import { SITE } from "./config.js";
+import { SITE, getShippingFee } from "./config.js";
+import { supabase } from "./supabase.js";
 
 const CartCtx = createContext(null);
 const KEY = "lumora_cart_v1";
+const COUPON_KEY = "lumora_coupon_v1";
 
 function reducer(state, a) {
   switch (a.type) {
@@ -31,8 +33,28 @@ function load() {
   }
 }
 
+function loadCoupon() {
+  try {
+    return JSON.parse(sessionStorage.getItem(COUPON_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCoupon(c) {
+  try {
+    if (c) sessionStorage.setItem(COUPON_KEY, JSON.stringify(c));
+    else sessionStorage.removeItem(COUPON_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function CartProvider({ children }) {
   const [items, dispatch] = useReducer(reducer, undefined, load);
+  const [coupon, setCoupon] = useState(loadCoupon);
+  const [shippingDistrict, setShippingDistrict] = useState("Dhaka");
+
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(items));
@@ -40,27 +62,113 @@ export function CartProvider({ children }) {
       /* ignore */
     }
   }, [items]);
-  const value = useMemo(() => ({ items, dispatch }), [items]);
+
+  useEffect(() => {
+    saveCoupon(coupon);
+  }, [coupon]);
+
+  const value = useMemo(
+    () => ({ items, dispatch, coupon, setCoupon, shippingDistrict, setShippingDistrict }),
+    [items, coupon, shippingDistrict]
+  );
   return <CartCtx.Provider value={value}>{children}</CartCtx.Provider>;
 }
 
 export function useCart() {
-  const { items, dispatch } = useContext(CartCtx);
+  const { items, dispatch, coupon, setCoupon, shippingDistrict, setShippingDistrict } = useContext(CartCtx);
   const lines = items
-    .map((i) => ({ ...i, product: PRODUCTS.find((p) => p.id === i.id) }))
-    .filter((l) => l.product);
+    .map((i) => {
+      const product = PRODUCTS.find((p) => p.id === i.id);
+      if (!product) return null;
+      const safePrice = Math.max(0, Number(product.price) || 0);
+      const safeQty = Math.max(1, Math.min(99, Math.floor(Number(i.qty) || 1)));
+      return { ...i, qty: safeQty, product: { ...product, price: safePrice } };
+    })
+    .filter((l) => l && l.product.price > 0);
   const count = lines.reduce((s, l) => s + l.qty, 0);
   const subtotal = lines.reduce((s, l) => s + l.qty * l.product.price, 0);
-  const shipping = subtotal === 0 ? 0 : subtotal >= SITE.freeShippingOver ? 0 : SITE.shippingFee;
+
+  const computeDiscount = (activeCoupon, currentSubtotal) => {
+    if (!activeCoupon || currentSubtotal <= 0) return 0;
+    const minOrder = Math.max(0, Number(activeCoupon.min_order) || 0);
+    if (currentSubtotal < minOrder) return 0;
+    const val = Math.max(0, Number(activeCoupon.value) || 0);
+    if (activeCoupon.type === "fixed") return Math.min(currentSubtotal, val);
+    const pct = Math.min(90, val);
+    return Math.min(currentSubtotal, Math.round((currentSubtotal * pct) / 100));
+  };
+
+  const discount = useMemo(() => computeDiscount(coupon, subtotal), [coupon, subtotal]);
+
+  const discountedSubtotal = Math.max(0, subtotal - discount);
+  const shipping =
+    discountedSubtotal === 0
+      ? 0
+      : discountedSubtotal > SITE.freeShippingOver
+        ? 0
+        : getShippingFee(shippingDistrict, discountedSubtotal);
+
+  const applyCoupon = async (rawCode) => {
+    const clean = String(rawCode || "").trim().toUpperCase();
+    if (!clean) return { ok: false, message: "Please enter a discount code." };
+    if (subtotal <= 0) return { ok: false, message: "Your cart is empty." };
+
+    const { data, error } = await supabase.rpc("check_coupon", {
+      p_code: clean,
+      p_subtotal: subtotal,
+      p_phone: null,
+    });
+    if (error || !data) return { ok: false, message: "Could not check the code. Please try again." };
+    if (!data.ok) return { ok: false, message: data.message || "Invalid or inactive discount code." };
+    setCoupon(data);
+    return { ok: true, message: `Code ${data.code} applied.` };
+  };
+
+  const verifyCouponForOrder = async (phone) => {
+    if (!coupon?.code) {
+      return { valid: true, coupon: null, discount: 0 };
+    }
+    const { data, error } = await supabase.rpc("check_coupon", {
+      p_code: coupon.code,
+      p_subtotal: subtotal,
+      p_phone: phone || null,
+    });
+    if (error || !data) return { valid: false, message: "Could not verify the discount code. Please try again." };
+    if (!data.ok) {
+      setCoupon(null);
+      return { valid: false, message: data.message || "This discount code is no longer valid." };
+    }
+    const verifiedDiscount = computeDiscount(data, subtotal);
+    const minOrder = Math.max(0, Number(data.min_order) || 0);
+    if (subtotal < minOrder || verifiedDiscount <= 0) {
+      return { valid: false, message: `Minimum order of ৳${Math.round(minOrder)} required for ${data.code}.` };
+    }
+    setCoupon(data);
+    return { valid: true, coupon: data, discount: verifiedDiscount };
+  };
+
+  const clearCoupon = () => setCoupon(null);
+
   return {
     lines,
     count,
     subtotal,
+    discount,
+    discountedSubtotal,
+    coupon,
+    applyCoupon,
+    verifyCouponForOrder,
+    clearCoupon,
     shipping,
-    total: subtotal + shipping,
+    shippingDistrict,
+    setShippingDistrict,
+    total: discountedSubtotal + shipping,
     add: (id, qty = 1) => dispatch({ type: "add", id, qty }),
     setQty: (id, qty) => dispatch({ type: "set", id, qty }),
     remove: (id) => dispatch({ type: "remove", id }),
-    clear: () => dispatch({ type: "clear" }),
+    clear: () => {
+      dispatch({ type: "clear" });
+      setCoupon(null);
+    },
   };
 }

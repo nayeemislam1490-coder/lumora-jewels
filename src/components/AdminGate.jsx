@@ -1,57 +1,108 @@
+// src/components/AdminGate.jsx
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase.js";
 
 export default function AdminGate({ children }) {
-  const [session, setSession] = useState(undefined);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => sub.subscription.unsubscribe();
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data?.session ?? null);
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+
+    return () => {
+      mounted = false;
+      listener?.subscription?.unsubscribe();
+    };
   }, []);
 
-  const login = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setBusy(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError("Wrong email or password.");
-    setBusy(false);
+    setSubmitting(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setSubmitting(false);
+    if (signInError) {
+      setError(signInError.message);
+    }
   };
 
-  if (session === undefined) return null;
-
-  if (session) {
+  if (loading) {
     return (
-      <>
-        {children}
-        <button
-          onClick={() => supabase.auth.signOut()}
-          style={{ position: "fixed", right: 16, bottom: 16, zIndex: 50, padding: "8px 14px", borderRadius: 10, border: "1px solid #c9a24b", background: "#33091a", color: "#f6edd6", cursor: "pointer" }}
-        >
-          Log out
-        </button>
-      </>
+      <div style={{ minHeight: "70vh", display: "grid", placeItems: "center", padding: "24px", color: "var(--ivory)" }}>
+        Checking admin session...
+      </div>
     );
   }
 
-  const input = { width: "100%", padding: "11px 12px", margin: "6px 0 14px", borderRadius: 10, border: "1px solid #ebe3dc", font: "inherit" };
+  if (session) {
+    return children;
+  }
+
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#33091a", padding: 16 }}>
-      <form onSubmit={login} style={{ width: "100%", maxWidth: 360, background: "#fff", borderRadius: 16, padding: 28, fontFamily: "Inter, system-ui, sans-serif" }}>
-        <h1 style={{ margin: "0 0 4px", fontSize: 22, color: "#33091a" }}>Admin login</h1>
-        <p style={{ margin: "0 0 18px", color: "#8a7c82", fontSize: 13 }}>Sign in to manage your store</p>
-        <label style={{ fontSize: 13 }}>Email</label>
-        <input style={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
-        <label style={{ fontSize: 13 }}>Password</label>
-        <input style={input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
-        {error && <p style={{ color: "#b53a32", fontSize: 13, margin: "0 0 12px" }}>{error}</p>}
-        <button disabled={busy} style={{ width: "100%", padding: 12, border: 0, borderRadius: 10, background: "#c9a24b", color: "#33091a", fontWeight: 600, cursor: "pointer" }}>
-          {busy ? "Signing in..." : "Sign in"}
+    <div style={{ minHeight: "80vh", display: "grid", placeItems: "center", padding: "24px 16px" }}>
+      <form
+        onSubmit={handleLogin}
+        style={{
+          width: "min(400px, 100%)",
+          background: "var(--navy2)",
+          border: "1px solid var(--line)",
+          borderRadius: "20px",
+          padding: "28px 24px",
+          display: "grid",
+          gap: "14px",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: "4px" }}>
+          <div style={{ fontSize: "0.72rem", letterSpacing: "0.25em", textTransform: "uppercase", color: "var(--gold)" }}>
+            Admin Access
+          </div>
+          <h2 style={{ fontFamily: "var(--serif)", fontSize: "1.9rem", fontWeight: 500, marginTop: "6px" }}>
+            Dashboard Login
+          </h2>
+        </div>
+
+        <div className="field">
+          <label>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@example.com"
+            required
+          />
+        </div>
+
+        <div className="field">
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
+        </div>
+
+        {error ? <div className="err">{error}</div> : null}
+
+        <button type="submit" className="btn btn-gold btn-block" disabled={submitting}>
+          {submitting ? "Signing in..." : "Sign In"}
         </button>
       </form>
     </div>

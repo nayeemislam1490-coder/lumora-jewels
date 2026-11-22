@@ -1,10 +1,63 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { SITE, money, hasPlaceholderWhatsapp } from "../config.js";
+import { SITE, BD_DISTRICTS, getShippingFee, money, hasPlaceholderWhatsapp } from "../config.js";
 import { useCart } from "../cart.jsx";
 import { supabase } from "../supabase.js";
 
 const ORDER_KEY = "lumora_last_order_v1";
+const LAST_SUBMIT_KEY = "lumora_last_order_ts_v1";
+const FBQ_PURCHASE_KEY = "lumora_fbq_purchase_v1";
+const OUTSIDE_DHAKA_FEE = SITE.outsideDhakaFee ?? 120;
+
+const DHAKA_ZONE_DISTRICTS = new Set(["dhaka", "gazipur", "narayanganj"]);
+const DHAKA_SUB_AREAS = ["keraniganj", "savar", "dhamrai", "ashulia"];
+
+const isDhakaZone = (district, address = "") => {
+  const d = String(district || "Dhaka").trim().toLowerCase();
+  if (DHAKA_ZONE_DISTRICTS.has(d)) return true;
+  const addr = String(address || "").toLowerCase();
+  return DHAKA_SUB_AREAS.some((area) => d.includes(area) || addr.includes(area));
+};
+
+const trackPurchase = (orderId, total, lines) => {
+  try {
+    if (typeof window === "undefined" || typeof window.fbq !== "function") return;
+    if (!orderId || sessionStorage.getItem(FBQ_PURCHASE_KEY) === orderId) return;
+
+    const contents = (lines || []).map((l) => ({
+      id: String(l.id),
+      quantity: Number(l.qty) || 1,
+      item_price: Number(l.product?.price) || 0,
+    }));
+    const numItems = contents.reduce((sum, item) => sum + item.quantity, 0);
+
+    window.fbq(
+      "track",
+      "Purchase",
+      {
+        value: Number(total) || 0,
+        currency: "BDT",
+        content_type: "product",
+        content_ids: contents.map((item) => item.id),
+        contents,
+        num_items: numItems,
+      },
+      { eventID: orderId }
+    );
+
+    sessionStorage.setItem(FBQ_PURCHASE_KEY, orderId);
+  } catch {
+    /* ignore */
+  }
+};
+
+const getDeliveryFee = (baseAmount, district = "Dhaka", address = "") => {
+  if (baseAmount <= 0) return 0;
+  if (baseAmount > SITE.freeShippingOver) return 0;
+  if (isDhakaZone(district, address)) return SITE.shippingFee;
+  return getShippingFee(district, baseAmount);
+};
+
 const loadOrder = () => {
   try {
     return JSON.parse(sessionStorage.getItem(ORDER_KEY));
@@ -21,19 +74,101 @@ const saveOrder = (o) => {
   }
 };
 
-function Summary({ cart, children }) {
+function CouponBox({ cart }) {
+  const [codeInput, setCodeInput] = useState("");
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleApply = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setStatus(null);
+    const res = await cart.applyCoupon(codeInput);
+    setBusy(false);
+    setStatus(res);
+    if (res.ok) setCodeInput("");
+  };
+
+  const handleRemove = () => {
+    cart.clearCoupon();
+    setStatus(null);
+  };
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line, rgba(255,255,255,0.12))" }}>
+      {cart.coupon ? (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 13 }}>
+          <span>
+            Code <b>{cart.coupon.code}</b> applied
+            {cart.discount === 0 && Number(cart.coupon.min_order) > 0
+              ? ` (add ${money(Number(cart.coupon.min_order) - cart.subtotal)} more)`
+              : ""}
+          </span>
+          <button
+            type="button"
+            onClick={handleRemove}
+            style={{ background: "none", border: "none", color: "var(--gold-light)", cursor: "pointer", font: "inherit", textDecoration: "underline", padding: 0 }}
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            type="text"
+            value={codeInput}
+            onChange={(e) => setCodeInput(e.target.value)}
+            placeholder="Discount code"
+            aria-label="Discount code"
+            style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line, rgba(255,255,255,0.2))", background: "transparent", color: "inherit", font: "inherit" }}
+          />
+          <button
+            type="button"
+            onClick={handleApply}
+            disabled={busy}
+            className="btn btn-ghost"
+            style={{ padding: "8px 12px", whiteSpace: "nowrap" }}
+          >
+            {busy ? "..." : "Apply"}
+          </button>
+        </div>
+      )}
+      {status && (
+        <p className="note" style={{ marginTop: 6, color: status.ok ? "var(--gold-light)" : "var(--down, #e06c75)" }}>
+          {status.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Summary({ cart, district = cart.shippingDistrict || "Dhaka", address = "", children }) {
+  const baseForShipping = cart.discountedSubtotal ?? cart.subtotal;
+  const shipping = getDeliveryFee(baseForShipping, district, address);
+  const total = baseForShipping + shipping;
+  const cleanDistrict = String(district || "Dhaka").trim() || "Dhaka";
+  const areaLabel = isDhakaZone(cleanDistrict, address) ? "Inside Dhaka" : "Outside Dhaka";
+
   return (
     <aside className="summary">
       <h3>Order summary</h3>
       <div className="sum-row"><span>Subtotal</span><span>{money(cart.subtotal)}</span></div>
-      <div className="sum-row">
-        <span>Delivery</span>
-        <span>{cart.shipping === 0 ? "Free" : money(cart.shipping)}</span>
-      </div>
-      <div className="sum-row total"><span>Total</span><b>{money(cart.total)}</b></div>
-      {cart.subtotal > 0 && cart.shipping > 0 && (
-        <p className="note">Add {money(SITE.freeShippingOver - cart.subtotal)} more for free delivery.</p>
+      {cart.discount > 0 && (
+        <div className="sum-row">
+          <span>Discount ({cart.coupon?.code})</span>
+          <span style={{ color: "var(--gold-light)" }}>−{money(cart.discount)}</span>
+        </div>
       )}
+      <div className="sum-row">
+        <span>Delivery ({areaLabel})</span>
+        <span>{shipping === 0 ? "Free" : money(shipping)}</span>
+      </div>
+      <div className="sum-row total"><span>Total</span><b>{money(total)}</b></div>
+      {baseForShipping > 0 && shipping > 0 && (
+        <p className="note">Add {money(SITE.freeShippingOver - baseForShipping)} more for free delivery.</p>
+      )}
+      <CouponBox cart={cart} />
       {children}
     </aside>
   );
@@ -81,7 +216,7 @@ export function Cart() {
             </div>
           ))}
         </div>
-        <Summary cart={cart}>
+        <Summary cart={cart} district={cart.shippingDistrict}>
           <Link to="/checkout" className="btn btn-gold btn-block" style={{ marginTop: 18 }}>
             Proceed to checkout
           </Link>
@@ -96,71 +231,184 @@ export function Cart() {
 
 export function Checkout() {
   const cart = useCart();
-  const [f, setF] = useState({ name: "", phone: "", address: "", city: "", note: "", pay: "cod" });
+  const initialDistrict = cart.shippingDistrict || "Dhaka";
+  const [f, setF] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    city: initialDistrict,
+    note: "",
+    pay: "cod",
+    payPhone: "",
+    trxId: "",
+    zone: isDhakaZone(initialDistrict, "") ? "inside" : "outside",
+  });
+  const [districtMenuOpen, setDistrictMenuOpen] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(() => (cart.lines.length === 0 ? loadOrder() : null));
 
   useEffect(() => {
     if (cart.lines.length > 0) saveOrder(null);
   }, [cart.lines.length]);
 
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const set = (k) => (e) => {
+    const val = e.target.value;
+    setF((prev) => {
+      const next = { ...prev, [k]: val };
+      if (k === "address") {
+        next.zone = isDhakaZone(prev.city, val) ? "inside" : "outside";
+      }
+      return next;
+    });
+  };
+
+  const applyDistrictValue = (rawValue) => {
+    const nextZone = isDhakaZone(rawValue, f.address) ? "inside" : "outside";
+    setF((prev) => ({ ...prev, city: rawValue, zone: nextZone }));
+    if (cart.setShippingDistrict) cart.setShippingDistrict(rawValue.trim() || "Dhaka");
+  };
+
+  const handleDistrictInput = (e) => {
+    applyDistrictValue(e.target.value);
+    setDistrictMenuOpen(true);
+  };
+
+  const handleSelectDistrict = (districtName) => {
+    applyDistrictValue(districtName);
+    setDistrictMenuOpen(false);
+  };
+
+  const filteredDistricts = BD_DISTRICTS.filter((d) =>
+    d.toLowerCase().includes(String(f.city || "").trim().toLowerCase())
+  );
 
   const buildMessage = (id, lines, totals) => {
     const items = lines.map(
       (l) => `• ${l.product.name} (${l.product.code}) × ${l.qty} = ${money(l.product.price * l.qty)}`
     );
+    const paymentLine =
+      f.pay === "cod"
+        ? "Payment: Cash on delivery"
+        : `Payment: Mobile payment (${f.payPhone.trim()} | TrxID: ${f.trxId.trim()})`;
+    const discountLine =
+      totals.discount > 0
+        ? `Discount (${totals.couponCode || "Coupon"}): −${money(totals.discount)}`
+        : "";
+    const districtName = f.city.trim() || "Dhaka";
+    const areaText = isDhakaZone(districtName, f.address) ? "Inside Dhaka" : "Outside Dhaka";
+
     return [
       `🛍️ New order ${id}`,
       "",
       ...items,
       "",
       `Subtotal: ${money(totals.subtotal)}`,
-      `Delivery: ${totals.shipping === 0 ? "Free" : money(totals.shipping)}`,
+      discountLine,
+      `Delivery (${districtName} · ${areaText}): ${totals.shipping === 0 ? "Free" : money(totals.shipping)}`,
       `Total: ${money(totals.total)}`,
-      `Payment: ${f.pay === "cod" ? "Cash on delivery" : "Mobile payment (bKash / Nagad)"}`,
+      paymentLine,
       "",
       `Name: ${f.name}`,
       `Phone: ${f.phone}`,
-      `Address: ${f.address}, ${f.city}`,
+      `Address: ${f.address}, ${districtName}`,
       f.note ? `Note: ${f.note}` : "",
     ]
       .filter((x) => x !== "")
       .join("\n");
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    if (submitting || cart.lines.length === 0) return;
+
+    const nowTs = Date.now();
+    const lastTs = Number(sessionStorage.getItem(LAST_SUBMIT_KEY) || 0);
+    if (nowTs - lastTs < 15000) {
+      setErrors({ form: "Please wait a few seconds before placing another order." });
+      return;
+    }
+
+    const cleanName = f.name.trim().slice(0, 100);
+    const cleanPhone = f.phone.trim().slice(0, 30);
+    const cleanAddress = f.address.trim().slice(0, 240);
+    const cleanCity = f.city.trim().slice(0, 80);
+    const cleanNote = f.note.trim().slice(0, 300);
+
     const er = {};
-    if (f.name.trim().length < 2) er.name = "Please enter your name.";
-    if (!/^[+\d][\d\s-]{6,}$/.test(f.phone.trim())) er.phone = "Please enter a valid phone number.";
-    if (f.address.trim().length < 5) er.address = "Please enter your full address.";
-    if (f.city.trim().length < 2) er.city = "Please enter your city.";
+    if (cleanName.length < 2) er.name = "Please enter your name.";
+    if (!/^[+\d][\d\s-]{6,}$/.test(cleanPhone)) er.phone = "Please enter a valid phone number.";
+    if (cleanAddress.length < 5) er.address = "Please enter your full address.";
+    if (cleanCity.length < 2) er.city = "Please enter or select your district.";
+    if (f.pay === "mobile") {
+      if (!/^[+\d][\d\s-]{6,}$/.test(f.payPhone.trim())) er.payPhone = "Please enter the sender bKash/Nagad number.";
+      if (f.trxId.trim().length < 4) er.trxId = "Please enter the transaction ID (trxID).";
+    }
     setErrors(er);
     if (Object.keys(er).length) return;
 
-    const id = "LJ-" + Date.now().toString(36).toUpperCase().slice(-6);
-    const totals = { subtotal: cart.subtotal, shipping: cart.shipping, total: cart.total };
-    const url = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(buildMessage(id, cart.lines, totals))}`;
+    setSubmitting(true);
+    const couponCheck = await cart.verifyCouponForOrder(cleanPhone);
+    if (!couponCheck.valid) {
+      setSubmitting(false);
+      setErrors({ form: couponCheck.message || "Discount code could not be verified." });
+      return;
+    }
 
-    supabase
+    const discount = couponCheck.discount || 0;
+    const discountedSubtotal = Math.max(0, cart.subtotal - discount);
+    const shipping = getDeliveryFee(discountedSubtotal, cleanCity, cleanAddress);
+    const total = discountedSubtotal + shipping;
+    if (total <= 0) {
+      setSubmitting(false);
+      setErrors({ form: "Invalid order total." });
+      return;
+    }
+
+    const id = "VH-" + Date.now().toString(36).toUpperCase().slice(-6);
+    const couponCode = couponCheck.coupon?.code || "";
+    const totals = { subtotal: cart.subtotal, discount, couponCode, shipping, total };
+    const orderLines = [...cart.lines];
+    const url = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(buildMessage(id, orderLines, totals))}`;
+    const paymentRecord =
+      f.pay === "cod" ? "cod" : `mobile (${f.payPhone.trim().slice(0, 25)} | TrxID: ${f.trxId.trim().slice(0, 40)})`;
+    const baseItemText = orderLines.map((l) => `${l.product.name} (x${l.qty})`).join(", ");
+    const itemText = discount > 0 && couponCode ? `${baseItemText} [Coupon: ${couponCode} −${money(discount)}]` : baseItemText;
+    const areaLabel = isDhakaZone(cleanCity, cleanAddress) ? "Inside Dhaka" : "Outside Dhaka";
+
+    const { error } = await supabase
       .from("orders")
       .insert({
         id,
-        items: cart.lines.map((l) => ({ id: l.id, name: l.product.name, price: l.product.price, qty: l.qty })),
-        item_text: cart.lines.map((l) => `${l.product.name} (x${l.qty})`).join(", "),
-        total: cart.total,
-        customer: f.name,
-        phone: f.phone,
-        address: f.address,
-        city: f.city,
-        payment: f.pay,
-      })
-      .then(({ error }) => {
-        if (error) console.error("Order save failed:", error.message);
+        items: orderLines.map((l) => ({ id: l.id, name: l.product.name, price: l.product.price, qty: l.qty })),
+        item_text: itemText,
+        total,
+        shipping_fee: shipping,
+        discount_amount: discount,
+        courier_cost: 0,
+        customer: cleanName,
+        phone: cleanPhone,
+        address: cleanNote ? `${cleanAddress} (Note: ${cleanNote})` : cleanAddress,
+        city: `${cleanCity} (${areaLabel})`,
+        payment: paymentRecord,
+        coupon_code: couponCode || null,
       });
 
-    const order = { id, url, total: cart.total, pay: f.pay };
+    setSubmitting(false);
+    try {
+      sessionStorage.setItem(LAST_SUBMIT_KEY, String(Date.now()));
+    } catch {
+      /* ignore */
+    }
+
+    const savedOk = !error;
+    if (error) {
+      console.error("Order save failed:", error.message);
+    }
+
+    trackPurchase(id, total, orderLines);
+
+    const order = { id, url, total, pay: f.pay, savedOk, saveError: error?.message || "" };
     setDone(order);
     saveOrder(order);
     cart.clear();
@@ -170,10 +418,16 @@ export function Checkout() {
   if (done) {
     return (
       <div className="container success">
-        <div className="tick">✓</div>
-        <h2>Thank you!</h2>
+        <div className="tick">{done.savedOk === false ? "!" : "✓"}</div>
+        <h2>{done.savedOk === false ? "Order created with warning" : "Thank you!"}</h2>
         <p>Your order <b style={{ color: "var(--gold-light)" }}>{done.id}</b> is ready to send. Total: {money(done.total)}.</p>
-        <p>Press the button below to send your order details to us on WhatsApp. We will confirm it with you shortly.</p>
+        {done.savedOk === false ? (
+          <div className="warn">
+            Could not save order to dashboard database ({done.saveError || "check Supabase insert permission"}). Please send the order on WhatsApp so it is not missed.
+          </div>
+        ) : (
+          <p>Press the button below to send your order details to us on WhatsApp. We will confirm it with you shortly.</p>
+        )}
         {done.pay === "mobile" && <p className="note">{SITE.mobilePayment}</p>}
         {hasPlaceholderWhatsapp() && (
           <div className="warn">Owner note: set your real WhatsApp number in <b>src/config.js</b> so orders reach you.</div>
@@ -196,6 +450,9 @@ export function Checkout() {
     );
   }
 
+  const inDhakaZone = isDhakaZone(f.city, f.address);
+  const currentCharge = inDhakaZone ? SITE.shippingFee : OUTSIDE_DHAKA_FEE;
+
   return (
     <>
       <div className="page-head">
@@ -207,6 +464,7 @@ export function Checkout() {
       <form className="container two-col" onSubmit={submit} noValidate>
         <div className="form">
           <h3 className="form-title">Delivery details</h3>
+          {errors.form && <div className="err" style={{ marginBottom: 12 }}>{errors.form}</div>}
           <div className="row">
             <div className="field">
               <label>Full name</label>
@@ -224,11 +482,69 @@ export function Checkout() {
             <input value={f.address} onChange={set("address")} autoComplete="street-address" />
             {errors.address && <div className="err">{errors.address}</div>}
           </div>
-          <div className="field">
-            <label>City / District</label>
-            <input value={f.city} onChange={set("city")} />
+          <div className="field" style={{ position: "relative" }}>
+            <label>District</label>
+            <input
+              type="text"
+              value={f.city}
+              onChange={handleDistrictInput}
+              onFocus={() => setDistrictMenuOpen(true)}
+              onBlur={() => setTimeout(() => setDistrictMenuOpen(false), 150)}
+              placeholder="Search or type district (e.g. Dhaka, Gazipur, Narayanganj)"
+              autoComplete="address-level2"
+            />
+            {districtMenuOpen && filteredDistricts.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  zIndex: 25,
+                  maxHeight: 200,
+                  overflowY: "auto",
+                  marginTop: 4,
+                  borderRadius: 8,
+                  border: "1px solid var(--line, rgba(255,255,255,0.2))",
+                  background: "#121629",
+                  boxShadow: "0 10px 24px rgba(0,0,0,0.35)",
+                }}
+              >
+                {filteredDistricts.map((district) => (
+                  <button
+                    key={district}
+                    type="button"
+                    onMouseDown={() => handleSelectDistrict(district)}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                      padding: "8px 12px",
+                      border: "none",
+                      borderBottom: "1px solid rgba(255,255,255,0.06)",
+                      background: f.city.toLowerCase() === district.toLowerCase() ? "rgba(255,255,255,0.1)" : "transparent",
+                      color: "#fff",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      font: "inherit",
+                      fontSize: 14,
+                    }}
+                  >
+                    <span>{district}</span>
+                    <span style={{ fontSize: 12, opacity: 0.75 }}>
+                      {isDhakaZone(district, f.address) ? money(SITE.shippingFee) : money(OUTSIDE_DHAKA_FEE)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="note" style={{ marginTop: 6 }}>
+              Delivery charge: <b>{money(currentCharge)}</b> ({inDhakaZone ? "Inside Dhaka" : "Outside Dhaka"} · Free over {money(SITE.freeShippingOver)})
+            </p>
             {errors.city && <div className="err">{errors.city}</div>}
           </div>
+
           <div className="field">
             <label>Order note (optional)</label>
             <textarea value={f.note} onChange={set("note")} />
@@ -245,9 +561,33 @@ export function Checkout() {
               <span>Mobile payment (bKash / Nagad)<small>{SITE.mobilePayment}</small></span>
             </label>
           </div>
+
+          {f.pay === "mobile" && (
+            <div className="row" style={{ marginTop: 14 }}>
+              <div className="field">
+                <label>Sender bKash / Nagad number</label>
+                <input
+                  value={f.payPhone}
+                  onChange={set("payPhone")}
+                  placeholder="01XXXXXXXXX"
+                  inputMode="tel"
+                />
+                {errors.payPhone && <div className="err">{errors.payPhone}</div>}
+              </div>
+              <div className="field">
+                <label>Transaction ID (trxID)</label>
+                <input
+                  value={f.trxId}
+                  onChange={set("trxId")}
+                  placeholder="e.g. BGH78K9L2M"
+                />
+                {errors.trxId && <div className="err">{errors.trxId}</div>}
+              </div>
+            </div>
+          )}
         </div>
 
-        <Summary cart={cart}>
+        <Summary cart={cart} district={f.city} address={f.address}>
           <div style={{ marginTop: 14 }}>
             {cart.lines.map((l) => (
               <div className="sum-row" key={l.id}>
@@ -256,8 +596,8 @@ export function Checkout() {
               </div>
             ))}
           </div>
-          <button type="submit" className="btn btn-gold btn-block" style={{ marginTop: 18 }}>
-            Place order
+          <button type="submit" disabled={submitting} className="btn btn-gold btn-block" style={{ marginTop: 18 }}>
+            {submitting ? "Verifying & saving..." : "Place order"}
           </button>
           <p className="note">Your order details will be sent to us on WhatsApp for confirmation.</p>
         </Summary>

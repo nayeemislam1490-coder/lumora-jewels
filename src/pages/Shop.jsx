@@ -31,6 +31,21 @@ export function Shop() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 760px) {
+          .shop-filter-bar {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .shop-price-pill {
+            flex: 1;
+            min-width: 0;
+          }
+          .shop-price-range {
+            width: 84px !important;
+          }
+        }
+      `}</style>
       <div className="page-head">
         <div className="container">
           <div className="crumbs"><Link to="/">Home</Link> / Shop</div>
@@ -48,10 +63,11 @@ export function Shop() {
               ))}
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "15px", flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.04)", padding: "6px 14px", borderRadius: "99px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                <span style={{ fontSize: "13px", opacity: 0.85 }}>Max: <b>{money(maxPrice)}</b></span>
+            <div className="shop-filter-bar" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <div className="shop-price-pill" style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.04)", padding: "6px 14px", borderRadius: "99px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <span style={{ fontSize: "13px", opacity: 0.85, whiteSpace: "nowrap" }}>Max: <b>{money(maxPrice)}</b></span>
                 <input
+                  className="shop-price-range"
                   type="range"
                   min="500"
                   max="10000"
@@ -112,6 +128,9 @@ function ProductView({ id }) {
   const images = p.images && p.images.length > 0 ? p.images : ["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600"];
   const related = allProds.filter((x) => String(x.id) !== String(p.id) && x.category === p.category).slice(0, 4);
   const save = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
+  const lineTotal = (Number(p.price) || 0) * qty;
+  const insideFee = SITE.shippingFee ?? 80;
+  const outsideFee = SITE.outsideDhakaFee ?? 120;
 
   const addToCart = () => {
     cart.add(p.id, qty);
@@ -131,6 +150,57 @@ function ProductView({ id }) {
 
   return (
     <>
+      <style>{`
+        .pd-sticky-bar {
+          display: none;
+        }
+        @media (max-width: 760px) {
+          .pd {
+            padding-bottom: 84px;
+          }
+          .pd h1 {
+            font-size: 1.55rem;
+            line-height: 1.22;
+          }
+          .pd-sticky-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 95;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(12, 15, 28, 0.96);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(201, 162, 75, 0.28);
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+          }
+          .pd-sticky-meta {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+          }
+          .pd-sticky-meta span {
+            font-size: 11px;
+            opacity: 0.78;
+            line-height: 1.2;
+          }
+          .pd-sticky-meta b {
+            font-size: 16px;
+            color: var(--gold-light);
+            line-height: 1.25;
+          }
+          .pd-sticky-btn {
+            flex: 1;
+            max-width: 210px;
+            padding: 11px 16px;
+            white-space: nowrap;
+          }
+        }
+      `}</style>
       <div className="container">
         <div className="pd">
           <div>
@@ -159,6 +229,9 @@ function ProductView({ id }) {
               {save > 0 && <span className="badge" style={{ position: "static" }}>Save {save}%</span>}
             </div>
             <p className="pd-desc">{p.desc || "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty."}</p>
+            <p className="note" style={{ marginTop: 0, marginBottom: 12 }}>
+              Delivery: Inside Dhaka <b>{money(insideFee)}</b> · Outside <b>{money(outsideFee)}</b> · Free over <b>{money(SITE.freeShippingOver)}</b>
+            </p>
             {p.specs && p.specs.length > 0 && (
               <ul className="specs">
                 {p.specs.map((s) => (
@@ -173,7 +246,7 @@ function ProductView({ id }) {
                 <button onClick={() => setQty(qty + 1)}>+</button>
               </div>
               <button className="btn btn-gold" style={{ flex: 1 }} onClick={addToCart}>
-                {added ? "Added ✓" : "Add to cart"}
+                {added ? "Added ✓" : `Add to cart · ${money(lineTotal)}`}
               </button>
             </div>
             <button className="btn btn-ghost btn-block" onClick={buyNow}>Buy it now</button>
@@ -192,6 +265,17 @@ function ProductView({ id }) {
           </div>
         </div>
       </div>
+
+      <div className="pd-sticky-bar">
+        <div className="pd-sticky-meta">
+          <span>Total ({qty} {qty > 1 ? "items" : "item"})</span>
+          <b>{money(lineTotal)}</b>
+        </div>
+        <button type="button" className="btn btn-gold pd-sticky-btn" onClick={addToCart}>
+          {added ? "Added ✓" : "Add to cart"}
+        </button>
+      </div>
+
       {related.length > 0 && (
         <section className="section alt">
           <div className="container">

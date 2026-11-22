@@ -6,11 +6,12 @@ import {
   LayoutDashboard, ShoppingBag, Gem, Users, BarChart3, Megaphone, Percent,
   Store, CreditCard, Search, SlidersHorizontal, Bell, CalendarDays, ChevronDown,
   ChevronLeft, ChevronRight, Plus, Package, CheckCircle2, XCircle, Trophy,
-  TrendingUp, TrendingDown, Trash2,
+  TrendingUp, TrendingDown, Trash2, X,
 } from "lucide-react";
 import { CATEGORIES } from "../products.js";
 import { money } from "../config.js";
 import { supabase } from "../supabase.js";
+import AdminPages from "../components/AdminPages.jsx";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -33,17 +34,15 @@ const APPS = [
 ];
 
 const RANGES = {
-  "1d": { name: "1d", delta: 3.2, labels: ["12a", "3a", "6a", "9a", "12p", "3p", "6p", "9p"], rev: [3, 2, 1, 8, 16, 12, 21, 26], ord: [0, 0, 0, 1, 2, 1, 3, 4] },
-  "7d": { name: "7d", delta: 2.5, labels: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"], rev: [62, 48, 71, 55, 93, 84, 120], ord: [3, 2, 4, 3, 6, 5, 8] },
-  "30d": { name: "30d", delta: 8.1, labels: ["Week 1", "Week 2", "Week 3", "Week 4"], rev: [310, 420, 380, 560], ord: [18, 24, 21, 33] },
-  "12m": { name: "12m", delta: 14.6, labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], rev: [820, 640, 910, 1100, 980, 1320, 1210, 1580, 1390, 1450, 1860, 2240], ord: [48, 37, 55, 64, 57, 79, 72, 93, 81, 88, 112, 134] },
-  max: { name: "Max", delta: 22.4, labels: ["2022", "2023", "2024", "2025", "2026"], rev: [4200, 7800, 11500, 15200, 18900], ord: [250, 460, 690, 910, 1130] },
+  "1d": { name: "1d", labels: ["12a", "3a", "6a", "9a", "12p", "3p", "6p", "9p"], rev: [0, 0, 0, 0, 0, 0, 0, 0], ord: [0, 0, 0, 0, 0, 0, 0, 0] },
+  "7d": { name: "7d", labels: ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"], rev: [0, 0, 0, 0, 0, 0, 0], ord: [0, 0, 0, 0, 0, 0, 0] },
+  "30d": { name: "30d", labels: ["Week 1", "Week 2", "Week 3", "Week 4"], rev: [0, 0, 0, 0], ord: [0, 0, 0, 0] },
+  "12m": { name: "12m", labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], rev: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ord: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+  max: { name: "Max", labels: ["2022", "2023", "2024", "2025", "2026"], rev: [0, 0, 0, 0, 0], ord: [0, 0, 0, 0, 0] },
 };
 
 const BEST = [
-  { name: "Gold necklace set", sold: 271, bg: "linear-gradient(150deg,#7a1d33,#33091a)" },
-  { name: "Diamond stud earrings", sold: 214, bg: "linear-gradient(150deg,#8a6a22,#3d2a08)" },
-  { name: "Pearl bracelet", sold: 187, bg: "linear-gradient(150deg,#5b1527,#1f0710)" },
+  { name: "No sales yet", sold: 0, bg: "linear-gradient(150deg,#7a1d33,#33091a)" },
 ];
 
 function smooth(pts) {
@@ -127,7 +126,7 @@ function SalesChart({ labels, rev, ord }) {
         <div className="vd-dot" style={{ left: px(b[i][0]), top: py(b[i][1]), background: "#c9a24b" }} />
         <div className="vd-tip" style={{ left: `${tipLeft}%` }}>
           <b>{labels[i]}</b>
-          <span><i style={{ background: "#5b1527", outline: "1px solid #c9a24b" }} />{money(rev[i] * 1000)} sales</span>
+          <span><i style={{ background: "#5b1527", outline: "1px solid #c9a24b" }} />{money(rev[i])} sales</span>
           <span><i style={{ background: "#c9a24b" }} />{ord[i]} orders</span>
         </div>
       </div>
@@ -147,6 +146,7 @@ export default function Dashboard() {
   const [slide, setSlide] = useState(0);
 
   const [orders, setOrders] = useState([]);
+  const [rawOrders, setRawOrders] = useState([]);
 
   const loadOrders = async () => {
     const { data, error } = await supabase
@@ -160,6 +160,7 @@ export default function Dashboard() {
     }
 
     if (data) {
+      setRawOrders(data);
       const mappedOrders = data.map((o) => ({
         id: o.id,
         item: o.item_text,
@@ -181,6 +182,7 @@ export default function Dashboard() {
 
   const changeStatus = async (id, status) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    setRawOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
     const { error } = await supabase
       .from("orders")
       .update({ status })
@@ -192,6 +194,8 @@ export default function Dashboard() {
 
   // Supabase থেকে প্রোডাক্ট লোড করার ব্যবস্থা
   const [products, setProducts] = useState([]);
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", description: "", imagesText: "" });
 
   const loadAdminProducts = async () => {
     const { data, error } = await supabase
@@ -207,21 +211,98 @@ export default function Dashboard() {
     loadAdminProducts();
   }, []);
 
-  const [newProd, setNewProd] = useState({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", image: "" });
+  // একাধিক ছবির লিংক ও ডিটেইলস হ্যান্ডেল করার জন্য স্টেট
+  const [newProd, setNewProd] = useState({ 
+    name: "", 
+    price: "", 
+    code: "", 
+    category: CATEGORIES[0] || "Necklaces", 
+    description: "", // নতুন প্রোডাক্ট ডিটেইলস ফিল্ড
+    images: [""] 
+  });
+
+  // নতুন ছবির ইনপুট বক্স যুক্ত করার ফাংশন
+  const handleAddImageInput = () => {
+    setNewProd({ ...newProd, images: [...newProd.images, ""] });
+  };
+
+  // নির্দিষ্ট ইনপুট বক্সের মান পরিবর্তনের ফাংশন
+  const handleImageChange = (index, value) => {
+    const updatedImages = [...newProd.images];
+    updatedImages[index] = value;
+    setNewProd({ ...newProd, images: updatedImages });
+  };
+
+  // নির্দিষ্ট ছবির ইনপুট বক্স ডিলিট করার ফাংশন
+  const handleRemoveImageInput = (index) => {
+    const updatedImages = newProd.images.filter((_, i) => i !== index);
+    setNewProd({ ...newProd, images: updatedImages.length > 0 ? updatedImages : [""] });
+  };
+
+  // ফোন/পিসির গ্যালারি থেকে ছবি আপলোড (Supabase Storage এ জমা হবে)
+  const [uploading, setUploading] = useState(false);
+
+  // বড় ছবি ছোট করে (সর্বোচ্চ ১২০০px) যাতে সাইট দ্রুত খোলে
+  const shrinkImage = (file) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, 1200 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob((b) => resolve(b || file), "image/jpeg", 0.85);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
+
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setUploading(true);
+    const urls = [];
+    for (const file of files) {
+      const blob = await shrinkImage(file);
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const { error } = await supabase.storage.from("product-images").upload(path, blob, { contentType: "image/jpeg" });
+      if (error) {
+        alert("Upload failed: " + error.message);
+        continue;
+      }
+      urls.push(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl);
+    }
+    if (urls.length > 0) {
+      setNewProd((p) => ({ ...p, images: [...p.images.filter((u) => u.trim() !== ""), ...urls] }));
+    }
+    setUploading(false);
+  };
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!newProd.name || !newProd.price) return;
     
+    // খালি লিংকগুলো ফিল্টার করে বাদ দেওয়া হচ্ছে
+    const filteredImages = newProd.images.filter((url) => url.trim() !== "");
+    const finalImages = filteredImages.length > 0 ? filteredImages : ["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600"];
+
     const row = {
       id: "p" + Date.now(),
       name: newProd.name,
       code: newProd.code || "LJ-" + Math.floor(100 + Math.random() * 900),
       category: newProd.category,
       price: Number(newProd.price),
-      description: "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty.",
+      featured: true,
+      description: newProd.description || "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty.",
       specs: ["100% Authentic Material", "Handcrafted finish", "Gift-ready packaging"],
-      images: [newProd.image || "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600"]
+      images: finalImages
     };
 
     const { error } = await supabase.from("products").insert([row]);
@@ -231,8 +312,41 @@ export default function Dashboard() {
     }
 
     setProducts([row, ...products]);
-    setNewProd({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", image: "" });
-    alert("Product added successfully to Supabase!");
+    setNewProd({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", description: "", images: [""] });
+    alert("Product added successfully with details and images to Supabase!");
+  };
+
+  const startEditProduct = (p) => {
+    setEditId(p.id);
+    setEditForm({
+      name: p.name || "",
+      price: p.price ?? "",
+      code: p.code || "",
+      category: p.category || CATEGORIES[0] || "Necklaces",
+      description: p.description || p.desc || "",
+      imagesText: Array.isArray(p.images) ? p.images.join("\n") : "",
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editId || !editForm.name || editForm.price === "") return;
+    const imgs = editForm.imagesText.split("\n").map((u) => u.trim()).filter(Boolean);
+    const updates = {
+      name: editForm.name.trim(),
+      price: Number(editForm.price),
+      code: editForm.code.trim(),
+      category: editForm.category,
+      description: editForm.description,
+      images: imgs.length > 0 ? imgs : ["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600"],
+    };
+    const { error } = await supabase.from("products").update(updates).eq("id", editId);
+    if (error) {
+      alert("Could not update product: " + error.message);
+      return;
+    }
+    setProducts((prev) => prev.map((item) => (String(item.id) === String(editId) ? { ...item, ...updates } : item)));
+    setEditId(null);
   };
 
   const handleDeleteProduct = async (id) => {
@@ -244,9 +358,91 @@ export default function Dashboard() {
     setProducts(products.filter((p) => String(p.id) !== String(id)));
   };
 
-  const r = RANGES[range];
-  const total = r.rev.reduce((s, v) => s + v, 0) * 1000;
-  const gain = total - total / (1 + r.delta / 100);
+  const validOrders = useMemo(() => rawOrders.filter((o) => o.status !== "Cancelled"), [rawOrders]);
+
+  const r = useMemo(() => {
+    const base = RANGES[range] || RANGES["7d"];
+    const rev = [...base.rev];
+    const ord = [...base.ord];
+    const nowDt = new Date();
+
+    if (range === "1d") {
+      validOrders.forEach((o) => {
+        const d = new Date(o.created_at);
+        if (d.toDateString() === nowDt.toDateString()) {
+          const idx = Math.min(7, Math.max(0, Math.floor(d.getHours() / 3)));
+          rev[idx] += Number(o.total) || 0;
+          ord[idx] += 1;
+        }
+      });
+    } else if (range === "7d") {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(nowDt);
+        d.setDate(d.getDate() - i);
+        const dayKey = d.toDateString();
+        const idx = 6 - i;
+        validOrders.forEach((o) => {
+          if (new Date(o.created_at).toDateString() === dayKey) {
+            rev[idx] += Number(o.total) || 0;
+            ord[idx] += 1;
+          }
+        });
+      }
+    } else if (range === "30d") {
+      validOrders.forEach((o) => {
+        const daysAgo = Math.floor((nowDt - new Date(o.created_at)) / 86400000);
+        if (daysAgo >= 0 && daysAgo < 28) {
+          const idx = Math.min(3, Math.floor(daysAgo / 7));
+          rev[3 - idx] += Number(o.total) || 0;
+          ord[3 - idx] += 1;
+        }
+      });
+    } else if (range === "12m") {
+      validOrders.forEach((o) => {
+        const d = new Date(o.created_at);
+        const monthsDiff = (nowDt.getFullYear() - d.getFullYear()) * 12 + (nowDt.getMonth() - d.getMonth());
+        if (monthsDiff >= 0 && monthsDiff < 12) {
+          const idx = 11 - monthsDiff;
+          rev[idx] += Number(o.total) || 0;
+          ord[idx] += 1;
+        }
+      });
+    } else {
+      validOrders.forEach((o) => {
+        const yr = new Date(o.created_at).getFullYear();
+        const idx = base.labels.findIndex((lbl) => Number(lbl) === yr);
+        if (idx >= 0) {
+          rev[idx] += Number(o.total) || 0;
+          ord[idx] += 1;
+        }
+      });
+    }
+
+    return { ...base, rev, ord };
+  }, [range, validOrders]);
+
+  const bestItems = useMemo(() => {
+    const m = new Map();
+    const bgs = [
+      "linear-gradient(150deg,#7a1d33,#33091a)",
+      "linear-gradient(150deg,#8a6a22,#3d2a08)",
+      "linear-gradient(150deg,#5b1527,#1f0710)",
+    ];
+    validOrders.forEach((o) => {
+      (Array.isArray(o.items) ? o.items : []).forEach((it) => {
+        const qty = Number(it.qty) || 1;
+        const prevItem = m.get(it.name) || { name: it.name || "Item", sold: 0 };
+        prevItem.sold += qty;
+        m.set(it.name, prevItem);
+      });
+    });
+    const sorted = [...m.values()].sort((a, b) => b.sold - a.sold).slice(0, 3);
+    if (sorted.length === 0) return BEST;
+    return sorted.map((item, idx) => ({ ...item, bg: bgs[idx % bgs.length] }));
+  }, [validOrders]);
+
+  const total = r.rev.reduce((s, v) => s + v, 0);
+  const gain = 0;
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -272,10 +468,11 @@ export default function Dashboard() {
   const greet = hr < 12 ? "Morning" : hr < 17 ? "Afternoon" : "Evening";
   const today = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
-  const k = BEST.length;
-  const prev = BEST[(slide - 1 + k) % k];
-  const cur = BEST[slide];
-  const next = BEST[(slide + 1) % k];
+  const k = bestItems.length;
+  const safeSlide = slide % k;
+  const prev = bestItems[(safeSlide - 1 + k) % k];
+  const cur = bestItems[safeSlide];
+  const next = bestItems[(safeSlide + 1) % k];
 
   return (
     <div className="vd">
@@ -323,10 +520,12 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {active === "products" ? (
+        {active !== "overview" && active !== "products" ? (
+          <AdminPages view={active} />
+        ) : active === "products" ? (
           <div style={{ display: "grid", gap: "20px" }}>
             <div className="vd-card">
-              <h2 className="vd-h" style={{ marginBottom: "15px" }}>Add New Jewelry Product</h2>
+              <h2 className="vd-h" style={{ marginBottom: "15px" }}>Add New Jewelry Product (Details & Multiple Images)</h2>
               <form onSubmit={handleAddProduct} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px" }}>
                 <input
                   type="text"
@@ -360,18 +559,76 @@ export default function Dashboard() {
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
-                <input
-                  type="text"
-                  placeholder="Image URL (optional)"
-                  value={newProd.image}
-                  onChange={(e) => setNewProd({ ...newProd, image: e.target.value })}
-                  style={{ padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--line)", outline: "none", gridColumn: "1 / -1" }}
-                />
-                <button type="submit" className="vd-ranges on" style={{ padding: "10px 20px", borderRadius: "10px", fontWeight: 600, gridColumn: "1 / -1", justifyContent: "center" }}>
+
+                {/* নতুন প্রোডাক্ট ডিটেইলস বা বিবরণ লেখার টেক্সটবক্স */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <textarea
+                    placeholder="Product Details / Full Description (e.g. Color-changing necklace Gradient Color effect...)"
+                    value={newProd.description}
+                    onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
+                    rows={3}
+                    style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: "1px solid var(--line)", outline: "none", resize: "vertical", fontFamily: "inherit" }}
+                  />
+                </div>
+
+                {/* একাধিক ছবি ইনপুট দেওয়ার ডায়নামিক সেকশন */}
+                <div style={{ gridColumn: "1 / -1", display: "grid", gap: "10px", background: "var(--bg)", padding: "14px", borderRadius: "12px", border: "1px solid var(--line)" }}>
+                  <label style={{ fontWeight: 500, fontSize: "13px", color: "var(--ink)" }}>Product Image URLs (যত খুশি ছবি দিন):</label>
+                  {newProd.images.map((imgUrl, idx) => (
+                    <div key={idx} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <input
+                        type="text"
+                        placeholder={`Image URL ${idx + 1}`}
+                        value={imgUrl}
+                        onChange={(e) => handleImageChange(idx, e.target.value)}
+                        style={{ flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)", outline: "none", background: "#fff" }}
+                      />
+                      {imgUrl.trim() !== "" && (
+                        <img src={imgUrl} alt="preview" style={{ width: 32, height: 32, borderRadius: "6px", objectFit: "cover", border: "1px solid var(--line)" }} />
+                      )}
+                      {(newProd.images.length > 1 || imgUrl.trim() !== "") && (
+                        <button type="button" onClick={() => handleRemoveImageInput(idx)} style={{ color: "var(--down)", padding: "6px" }} title="Remove image">
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+                    <label style={{ padding: "6px 12px", background: "var(--gold)", color: "var(--maroon-d)", borderRadius: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer", opacity: uploading ? 0.6 : 1 }}>
+                      {uploading ? "Uploading..." : "📷 Choose photos"}
+                      <input type="file" accept="image/*" multiple onChange={handleFiles} disabled={uploading} style={{ display: "none" }} />
+                    </label>
+                    <button type="button" onClick={handleAddImageInput} style={{ padding: "6px 12px", background: "var(--maroon)", color: "#fff", borderRadius: "8px", fontSize: "12px", fontWeight: 500 }}>
+                    + Add Another Image Box
+                  </button>
+                  </div>
+                </div>
+
+                <button type="submit" disabled={uploading} className="vd-ranges on" style={{ padding: "10px 20px", borderRadius: "10px", fontWeight: 600, gridColumn: "1 / -1", justifyContent: "center" }}>
                   Add Product to Store
                 </button>
               </form>
             </div>
+
+            {editId && (
+              <div className="vd-card" style={{ borderColor: "var(--gold)" }}>
+                <h2 className="vd-h" style={{ marginBottom: "12px" }}>Edit Product</h2>
+                <form onSubmit={handleSaveEdit} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+                  <input type="text" placeholder="Product Name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)" }} required />
+                  <input type="number" placeholder="Price" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)" }} required />
+                  <input type="text" placeholder="Code" value={editForm.code} onChange={(e) => setEditForm({ ...editForm, code: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)" }} />
+                  <select value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)", background: "#fff" }}>
+                    {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  <textarea placeholder="Description" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={2} style={{ gridColumn: "1 / -1", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)", fontFamily: "inherit" }} />
+                  <textarea placeholder="Image URLs (one per line)" value={editForm.imagesText} onChange={(e) => setEditForm({ ...editForm, imagesText: e.target.value })} rows={2} style={{ gridColumn: "1 / -1", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)", fontFamily: "inherit" }} />
+                  <div style={{ gridColumn: "1 / -1", display: "flex", gap: "8px" }}>
+                    <button type="submit" className="vd-ranges on" style={{ padding: "8px 16px", borderRadius: "8px", fontWeight: 600 }}>Save Changes</button>
+                    <button type="button" onClick={() => setEditId(null)} style={{ padding: "8px 14px", borderRadius: "8px", border: "1px solid var(--line)" }}>Cancel</button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             <div className="vd-card">
               <h2 className="vd-h" style={{ marginBottom: "15px" }}>Product Catalog ({products.length})</h2>
@@ -379,7 +636,7 @@ export default function Dashboard() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Image</th>
+                      <th>Images</th>
                       <th>Product Name</th>
                       <th>Category</th>
                       <th>Code</th>
@@ -391,13 +648,26 @@ export default function Dashboard() {
                     {products.map((p) => (
                       <tr key={p.id}>
                         <td>
-                          <img src={p.images?.[p.images.length - 1] || p.images?.[0]} alt={p.name} style={{ width: 36, height: 36, borderRadius: "8px", objectFit: "cover" }} />
+                          <div style={{ display: "flex", gap: "4px" }}>
+                            {p.images && p.images.length > 0 ? (
+                              p.images.slice(0, 3).map((img, i) => (
+                                <img key={i} src={img} alt={p.name} style={{ width: 32, height: 32, borderRadius: "6px", objectFit: "cover", border: "1px solid var(--line)" }} />
+                              ))
+                            ) : (
+                              <span style={{ fontSize: "12px", color: "var(--mut)" }}>No image</span>
+                            )}
+                            {p.images?.length > 3 && <span style={{ fontSize: "11px", alignSelf: "center" }}>+{p.images.length - 3}</span>}
+                          </div>
                         </td>
-                        <td><b>{p.name}</b></td>
+                        <td>
+                          <b>{p.name}</b>
+                          {p.description && <div style={{ fontSize: "11px", color: "var(--mut)", maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.description}</div>}
+                        </td>
                         <td><span className="vd-pill" style={{ background: "var(--gold-s)", color: "var(--maroon)" }}>{p.category || "General"}</span></td>
                         <td>{p.code || "N/A"}</td>
                         <td>{money(p.price)}</td>
-                        <td>
+                        <td style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          <button onClick={() => startEditProduct(p)} style={{ color: "var(--maroon)", fontWeight: 600 }}>Edit</button>
                           <button onClick={() => handleDeleteProduct(p.id)} style={{ color: "var(--down)", display: "flex", alignItems: "center", gap: 4 }}>
                             <Trash2 size={16} /> Delete
                           </button>
@@ -447,7 +717,7 @@ export default function Dashboard() {
                 <h2 className="vd-h">Your sales report</h2>
                 <p className="vd-sub">Look at your sale</p>
                 <div className="vd-big">{money(total)}</div>
-                <span className="vd-pill up"><TrendingUp size={12} />{money(gain)} (+{r.delta}%)</span>
+                <span className="vd-pill up"><TrendingUp size={12} />{money(gain)}</span>
                 <div className="vd-ranges">
                   {Object.entries(RANGES).map(([key, v]) => (
                     <button key={key} className={range === key ? "on" : ""} onClick={() => setRange(key)}>{v.name}</button>
@@ -548,7 +818,7 @@ export default function Dashboard() {
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600&display=swap');
-.vd{--maroon:#5b1527;--maroon-d:#33091a;--gold:#c9a24b;--gold-s:#f6edd6;--bg:#f6f2ee;--ink:#241219;--mut:#8a7c82;--line:#ebe3dc;--up:#2f8a62;--down:#b53a32;display:flex;min-height:100vh;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:14px}
+.vd{--maroon:#5b1527;--maroon-d:#33091a;--gold:#c9a24b;--gold-s:#f6edd6;--bg:#f6f2ee;--ink:#241219;--mut:#8a7c82;--line:#ebe3dc;--up:#2f8a62;--down:#b53a32;display:flex;min-height:100vh;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:14px;overflow-x:clip;max-width:100%}
 .vd *{box-sizing:border-box}
 .vd button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
 .vd button:focus-visible,.vd input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
@@ -570,7 +840,7 @@ button.vd-nav:hover{background:rgba(255,255,255,.07)}
 .is-collapsed .vd-nav{justify-content:center}
 .is-collapsed .vd-badge{position:absolute;top:2px;right:6px;margin:0}
 
-.vd-main{flex:1;min-width:0;padding:24px 32px 40px}
+.vd-main{flex:1;min-width:0;max-width:100%;overflow-x:clip;padding:24px 32px 40px}
 
 .vd-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
 .vd-head h1{margin:0;font-size:20px;font-weight:600}
@@ -581,9 +851,10 @@ button.vd-nav:hover{background:rgba(255,255,255,.07)}
 .vd-bell b{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:99px;background:var(--down);color:#fff;font-size:10px;display:grid;place-items:center}
 .vd-avatar{width:26px;height:26px;border-radius:50%;background:var(--maroon);color:var(--gold);display:grid;place-items:center;font-weight:600;font-size:12px}
 
-.vd-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+.vd-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0;max-width:100%}
 .vd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.vd-kpi{display:flex;align-items:center;gap:12px}
+.vd-kpi{display:flex;align-items:center;gap:12px;min-width:0}
+.vd-kpi > div{min-width:0}
 .vd-ico{width:42px;height:42px;border-radius:50%;background:var(--gold-s);color:var(--maroon);display:grid;place-items:center;flex:none}
 .vd-kpi small{display:block;color:var(--mut);font-size:12px;margin-bottom:2px}
 .vd-kpi strong{font-size:22px;font-weight:600;margin-right:6px}
@@ -594,7 +865,8 @@ button.vd-nav:hover{background:rgba(255,255,255,.07)}
 .vd-h{margin:0;font-size:16px;font-weight:600}
 .vd-sub{color:var(--mut);font-size:12px;margin:3px 0 0}
 .vd-sales{margin-top:16px;display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:28px;align-items:start}
-.vd-big{font-family:'Cormorant Garamond',Georgia,serif;font-size:54px;line-height:1.1;font-weight:600;margin:22px 0 10px;color:var(--maroon-d)}
+.vd-sales > div{min-width:0}
+.vd-big{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(34px,9vw,54px);line-height:1.1;font-weight:600;margin:22px 0 10px;color:var(--maroon-d);overflow-wrap:anywhere}
 .vd-ranges{display:flex;gap:6px;margin-top:24px;flex-wrap:wrap}
 .vd-ranges button{padding:6px 13px;border-radius:99px;color:var(--mut)}
 .vd-ranges button.on{background:var(--maroon);color:#fff}
@@ -607,7 +879,8 @@ button.vd-nav:hover{background:rgba(255,255,255,.07)}
 .vd-tip i{width:8px;height:8px;border-radius:50%}
 .vd-axis{display:flex;justify-content:space-between;color:var(--mut);font-size:12px;margin-top:8px}
 
-.vd-bottom{margin-top:16px;display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.vd-bottom{margin-top:16px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.vd-bottom > .vd-card{min-width:0}
 .vd-tabletop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .vd-row{display:flex;gap:8px;position:relative}
 .vd-search{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:12px;color:var(--mut)}
@@ -616,7 +889,7 @@ button.vd-nav:hover{background:rgba(255,255,255,.07)}
 .vd-pop{position:absolute;right:0;top:44px;z-index:5;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 10px 30px rgba(51,9,26,.16);min-width:150px}
 .vd-pop button{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:8px}
 .vd-pop button:hover,.vd-pop button.on{background:var(--gold-s)}
-.vd-scroll{overflow-x:auto}
+.vd-scroll{overflow-x:auto;max-width:100%}
 .vd table{width:100%;border-collapse:collapse;min-width:560px}
 .vd th{text-align:left;font-weight:500;color:var(--mut);font-size:12px;padding:8px 10px}
 .vd td{padding:12px 10px;border-top:1px solid var(--line);white-space:nowrap}
@@ -648,7 +921,9 @@ button.vd-nav:hover{background:rgba(255,255,255,.07)}
   .vd-side .vd-lbl{display:block}
   .vd-nav .vd-badge{position:absolute;top:2px;right:10px;margin:0}
   .vd-main{padding:16px 14px 96px}
-  .vd-big{font-size:44px}
+  .vd-big{font-size:clamp(30px,8.5vw,44px)}
   .vd-tabletop{flex-wrap:wrap}
+  .vd-tile.side{width:46px;height:76px}
+  .vd-tile.main{width:96px;height:128px}
 }
 `;
