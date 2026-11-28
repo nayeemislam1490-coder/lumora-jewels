@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { money } from "../config.js";
 import { useCart } from "../cart.jsx";
+import { useLang } from "../i18n.jsx";
 import "../product-cards.css";
 
 // One shared observer marks each card "is-in" the first time it is visible (starts its image animation).
@@ -22,8 +23,14 @@ const seen =
 
 export default function ProductCard({ p }) {
   const cart = useCart();
+  const { t } = useLang();
   const ref = useRef(null);
   const raf = useRef(0);
+
+  const tr = (key, fallback) => {
+    const val = t(key);
+    return val && val !== key ? val : fallback;
+  };
 
   useEffect(() => {
     const el = ref.current;
@@ -75,7 +82,7 @@ export default function ProductCard({ p }) {
             {p.oldPrice && <s>{money(p.oldPrice)}</s>}
           </div>
           <button className="card-add" onClick={() => cart.add(p.id, 1)}>
-            Add to cart
+            {tr("product.addToCart", "Add to cart")}
           </button>
         </div>
       </article>

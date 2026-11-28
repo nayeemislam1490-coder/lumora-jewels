@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { SITE, money } from "../config.js";
 import { CATEGORIES, PRODUCTS as DEFAULT_PRODUCTS, byId as defaultById } from "../products.js";
 import { useCart } from "../cart.jsx";
+import { useLang } from "../i18n.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import Reveal from "../components/Reveal.jsx";
 
@@ -15,7 +16,13 @@ export function Shop() {
   const [sort, setSort] = useState("featured");
   const [maxPrice, setMaxPrice] = useState(10000);
   const [products, setProducts] = useState(getActiveProducts());
+  const { t } = useLang();
   const cat = params.get("cat") || "All";
+
+  const tr = (key, fallback) => {
+    const val = t(key);
+    return val && val !== key ? val : fallback;
+  };
 
   useEffect(() => {
     setProducts(getActiveProducts());
@@ -48,8 +55,11 @@ export function Shop() {
       `}</style>
       <div className="page-head">
         <div className="container">
-          <div className="crumbs"><Link to="/">Home</Link> / Shop</div>
-          <h1 className="title">{cat === "All" ? "All " : ""}<em>{cat === "All" ? "Jewelry" : cat}</em></h1>
+          <div className="crumbs"><Link to="/">{tr("nav.home", "Home")}</Link> / {tr("nav.shop", "Shop")}</div>
+          <h1 className="title">
+            {cat === "All" ? `${tr("shop.allPrefix", "All")} ` : ""}
+            <em>{cat === "All" ? tr("shop.allJewelry", "Jewelry") : tr(`cat.${cat.toLowerCase()}`, cat)}</em>
+          </h1>
         </div>
       </div>
       <section className="section" style={{ paddingTop: 50 }}>
@@ -58,14 +68,14 @@ export function Shop() {
             <div className="chips">
               {["All", ...CATEGORIES].map((c) => (
                 <button key={c} className={`chip ${cat === c ? "on" : ""}`} onClick={() => choose(c)}>
-                  {c}
+                  {c === "All" ? tr("shop.all", "All") : tr(`cat.${c.toLowerCase()}`, c)}
                 </button>
               ))}
             </div>
 
             <div className="shop-filter-bar" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
               <div className="shop-price-pill" style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.04)", padding: "6px 14px", borderRadius: "99px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                <span style={{ fontSize: "13px", opacity: 0.85, whiteSpace: "nowrap" }}>Max: <b>{money(maxPrice)}</b></span>
+                <span style={{ fontSize: "13px", opacity: 0.85, whiteSpace: "nowrap" }}>{tr("shop.maxPrice", "Max")}: <b>{money(maxPrice)}</b></span>
                 <input
                   className="shop-price-range"
                   type="range"
@@ -79,15 +89,15 @@ export function Shop() {
               </div>
 
               <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="featured">Sort: Featured</option>
-                <option value="low">Price: Low to High</option>
-                <option value="high">Price: High to Low</option>
+                <option value="featured">{tr("shop.sortFeatured", "Sort: Featured")}</option>
+                <option value="low">{tr("shop.sortLow", "Price: Low to High")}</option>
+                <option value="high">{tr("shop.sortHigh", "Price: High to Low")}</option>
               </select>
             </div>
           </div>
 
           {list.length === 0 ? (
-            <p className="lead">No products match your filter criteria.</p>
+            <p className="lead">{tr("shop.noMatch", "No products match your filter criteria.")}</p>
           ) : (
             <div className="grid">
               {list.map((p) => (
@@ -111,16 +121,22 @@ function ProductView({ id }) {
   const p = allProds.find((x) => String(x.id) === String(id)) || defaultById(id);
   const cart = useCart();
   const nav = useNavigate();
+  const { t } = useLang();
   const [img, setImg] = useState(0);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
+  const tr = (key, fallback) => {
+    const val = t(key);
+    return val && val !== key ? val : fallback;
+  };
+
   if (!p) {
     return (
       <div className="container empty">
-        <h2>Product not found</h2>
-        <p>This piece may have been removed.</p>
-        <Link to="/shop" className="btn btn-gold">Back to shop</Link>
+        <h2>{tr("product.notFoundTitle", "Product not found")}</h2>
+        <p>{tr("product.notFoundDesc", "This piece may have been removed.")}</p>
+        <Link to="/shop" className="btn btn-gold">{tr("product.backToShop", "Back to shop")}</Link>
       </div>
     );
   }
@@ -219,18 +235,18 @@ function ProductView({ id }) {
           </div>
           <div>
             <div className="crumbs">
-              <Link to="/shop">Shop</Link> {p.category ? <> / <Link to={`/shop?cat=${p.category}`}>{p.category}</Link></> : ""}
+              <Link to="/shop">{tr("nav.shop", "Shop")}</Link> {p.category ? <> / <Link to={`/shop?cat=${p.category}`}>{tr(`cat.${p.category.toLowerCase()}`, p.category)}</Link></> : ""}
             </div>
             <span className="card-code">{p.code || "LJ-NEW"}</span>
             <h1>{p.name}</h1>
             <div className="price">
               <b>{money(p.price)}</b>
               {p.oldPrice && <s>{money(p.oldPrice)}</s>}
-              {save > 0 && <span className="badge" style={{ position: "static" }}>Save {save}%</span>}
+              {save > 0 && <span className="badge" style={{ position: "static" }}>{tr("product.save", "Save")} {save}%</span>}
             </div>
-            <p className="pd-desc">{p.desc || "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty."}</p>
+            <p className="pd-desc">{p.desc || tr("product.defaultDesc", "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty.")}</p>
             <p className="note" style={{ marginTop: 0, marginBottom: 12 }}>
-              Delivery: Inside Dhaka <b>{money(insideFee)}</b> · Outside <b>{money(outsideFee)}</b> · Free over <b>{money(SITE.freeShippingOver)}</b>
+              {tr("product.deliveryLabel", "Delivery")}: {tr("product.insideDhaka", "Inside Dhaka")} <b>{money(insideFee)}</b> · {tr("product.outsideLabel", "Outside")} <b>{money(outsideFee)}</b> · {tr("product.freeOver", "Free over")} <b>{money(SITE.freeShippingOver)}</b>
             </p>
             {p.specs && p.specs.length > 0 && (
               <ul className="specs">
@@ -246,21 +262,21 @@ function ProductView({ id }) {
                 <button onClick={() => setQty(qty + 1)}>+</button>
               </div>
               <button className="btn btn-gold" style={{ flex: 1 }} onClick={addToCart}>
-                {added ? "Added ✓" : `Add to cart · ${money(lineTotal)}`}
+                {added ? tr("product.added", "Added ✓") : `${tr("product.addToCart", "Add to cart")} · ${money(lineTotal)}`}
               </button>
             </div>
-            <button className="btn btn-ghost btn-block" onClick={buyNow}>Buy it now</button>
+            <button className="btn btn-ghost btn-block" onClick={buyNow}>{tr("product.buyNow", "Buy it now")}</button>
             <p className="note">
-              Questions?{" "}
+              {tr("product.questions", "Questions?")} {" "}
               <a href={`https://wa.me/${SITE.whatsapp}?text=${askText}`} target="_blank" rel="noreferrer" style={{ color: "var(--gold-light)", textDecoration: "underline" }}>
-                Ask us on WhatsApp
+                {tr("product.askWhatsapp", "Ask us on WhatsApp")}
               </a>
             </p>
             <div className="assure" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "24px", padding: "16px", background: "rgba(201, 162, 75, 0.08)", border: "1px solid rgba(201, 162, 75, 0.25)", borderRadius: "12px" }}>
-              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🔒 Secure Checkout</b><span style={{ fontSize: "12px", opacity: 0.85 }}>Safe & encrypted order</span></div>
-              <div><b style={{ display: "block", color: "var(--gold-light)" }}>💎 100% Authentic</b><span style={{ fontSize: "12px", opacity: 0.85 }}>Certified quality finish</span></div>
-              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🚚 Fast Delivery</b><span style={{ fontSize: "12px", opacity: 0.85 }}>{SITE.deliveryTime}</span></div>
-              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🔄 {SITE.returnDays}-Day Exchange</b><span style={{ fontSize: "12px", opacity: 0.85 }}>Gift-ready packaging</span></div>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🔒 {tr("product.assureSecureTitle", "Secure Checkout")}</b><span style={{ fontSize: "12px", opacity: 0.85 }}>{tr("product.assureSecureSub", "Safe & encrypted order")}</span></div>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>💎 {tr("product.assureAuthTitle", "100% Authentic")}</b><span style={{ fontSize: "12px", opacity: 0.85 }}>{tr("product.assureAuthSub", "Certified quality finish")}</span></div>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🚚 {tr("product.assureFastTitle", "Fast Delivery")}</b><span style={{ fontSize: "12px", opacity: 0.85 }}>{SITE.deliveryTime}</span></div>
+              <div><b style={{ display: "block", color: "var(--gold-light)" }}>🔄 {SITE.returnDays}-{tr("product.assureExchangeTitle", "Day Exchange")}</b><span style={{ fontSize: "12px", opacity: 0.85 }}>{tr("product.assureExchangeSub", "Gift-ready packaging")}</span></div>
             </div>
           </div>
         </div>
@@ -268,11 +284,11 @@ function ProductView({ id }) {
 
       <div className="pd-sticky-bar">
         <div className="pd-sticky-meta">
-          <span>Total ({qty} {qty > 1 ? "items" : "item"})</span>
+          <span>{tr("product.totalLabel", "Total")} ({qty} {qty > 1 ? tr("product.itemsPlural", "items") : tr("product.itemSingular", "item")})</span>
           <b>{money(lineTotal)}</b>
         </div>
         <button type="button" className="btn btn-gold pd-sticky-btn" onClick={addToCart}>
-          {added ? "Added ✓" : "Add to cart"}
+          {added ? tr("product.added", "Added ✓") : tr("product.addToCart", "Add to cart")}
         </button>
       </div>
 
@@ -281,8 +297,8 @@ function ProductView({ id }) {
           <div className="container">
             <Reveal className="head-row">
               <div>
-                <span className="eyebrow">You may also like</span>
-                <h2 className="title">More <em>{p.category || "Collection"}</em></h2>
+                <span className="eyebrow">{tr("product.relatedEyebrow", "You may also like")}</span>
+                <h2 className="title">{tr("product.relatedTitle", "More")} <em>{p.category ? tr(`cat.${p.category.toLowerCase()}`, p.category) : tr("product.collection", "Collection")}</em></h2>
               </div>
             </Reveal>
             <div className="grid">

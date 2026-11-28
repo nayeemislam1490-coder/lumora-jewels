@@ -4,6 +4,108 @@ export const CATEGORIES = ["Necklaces", "Earrings", "Rings", "Sets"];
 
 const img = (n) => `/images/${n}.jpg`;
 
+const BN_TEXT = {
+  "sapphire-bloom-set": {
+    name: "স্যাফায়ার ব্লুম সেট",
+    short: "নেকলেস, দুল এবং আংটি—সবকিছু এক সেটে।",
+    desc: "একটি সম্পূর্ণ ম্যাচিং সেট: পেন্ডেন্ট নেকলেস, এক জোড়া দুল এবং একটি আংটি—সবগুলোতে ডিপ ব্লু ও স্কাই-ব্লু পাথর বসানো যা আলোয় ঝলমল করে। প্রিয়জনকে উপহার দেওয়ার জন্য দারুণ একটি সেট।",
+    specs: ["যা যা থাকছে: নেকলেস, দুল, আংটি", "পাথর: ডিপ ব্লু ও স্কাই ব্লু", "গিফট বক্সে পরিবেশিত (ছবির মতো)"],
+  },
+  "double-heart-layered-necklace": {
+    name: "ডাবল হার্ট লেয়ার্ড নেকলেস",
+    short: "দুটি সূক্ষ্ম চেইন, একটি বড় হার্ট ও ছোট হার্টের ছোঁয়া।",
+    desc: "ওয়ার্ম গোল্ডেন ফিনিশে দুটি লেয়ারের চেইন নেকলেস। ফাইন স্নেক চেইনে একটি মসৃণ হার্ট পেন্ডেন্ট এবং তার সাথে আরেকটি চেইনে ছোট ছোট হার্টের ডিজাইন। প্রতিদিন পরার জন্য একদম মানানসই।",
+    specs: ["চেইন ১ দৈর্ঘ্য: ৩৭ + ৫ সেমি", "চেইন ২ দৈর্ঘ্য: ৪০ + ৫ সেমি", "হার্ট পেন্ডেন্ট: ১.২ সেমি", "ছোট হার্ট: ০.৫ সেমি", "ওজন: ৬.১ গ্রাম"],
+  },
+  "sapphire-bloom-necklace": {
+    name: "স্যাফায়ার ব্লুম নেকলেস",
+    short: "ঝলমলে পেন্ডেন্টে নীল পাথরের কারুকাজ।",
+    desc: "সূক্ষ্ম চেইনে ডিপ ব্লু ও স্কাই-ব্লু পাথর বসানো একটি আকর্ষণীয় পেন্ডেন্ট। যেকোনো অনুষ্ঠানে পরার মতো মার্জিত, আবার প্রতিদিন পরার জন্য হালকা।",
+    specs: ["পাথর: ডিপ ব্লু ও স্কাই ব্লু", "পেন্ডেন্টসহ সূক্ষ্ম চেইন"],
+  },
+  "sapphire-bloom-earrings": {
+    name: "স্যাফায়ার ব্লুম দুল",
+    short: "ম্যাচিং নীল পাথরের দুল।",
+    desc: "ডিপ ব্লু ও স্কাই-ব্লু পাথরে তৈরি ঝলমলে ডিজাইনের ম্যাচিং দুল। স্যাফায়ার ব্লুম নেকলেস ও আংটির সাথে দারুণ মানিয়ে যায়।",
+    specs: ["পাথর: ডিপ ব্লু ও স্কাই ব্লু", "এক জোড়া হিসেবে বিক্রি হয়"],
+  },
+  "sapphire-bloom-ring": {
+    name: "স্যাফায়ার ব্লুম আংটি",
+    short: "নীল পাথর বসানো ওপেন-স্টাইল আংটি।",
+    desc: "ঝলমলে ব্যান্ডে দুটি ডিপ ব্লু এবং দুটি স্কাই-ব্লু পাথরের সমন্বয়ে তৈরি আকর্ষণীয় আংটি।",
+    specs: ["পাথর: ডিপ ব্লু ও স্কাই ব্লু", "গিফট বক্সে পরিবেশিত"],
+  },
+  "triple-bead-necklace": {
+    name: "ট্রিপল বিড নেকলেস",
+    short: "সূক্ষ্ম চেইনে তিনটি সোনালি বিড।",
+    desc: "সূক্ষ্ম চেইনের মাঝখানে তিনটি মসৃণ সোনালি বিড। মিনিমাল, আধুনিক এবং যেকোনো পোশাকের সাথে সহজেই মানানসই।",
+    specs: ["গোল্ডেন ফিনিশ", "সূক্ষ্ম বক্স চেইন"],
+  },
+  "twin-hearts-lariat": {
+    name: "টুইন হার্টস ল্যারিয়াট",
+    short: "অ্যাডজাস্টেবল চেইনে জোড়া হার্টের ডিজাইন।",
+    desc: "অ্যাডজাস্টেবল স্লাইডার চেইনে পরস্পর যুক্ত দুটি ওপেন হার্ট। মিষ্টি ও অর্থবহ একটি উপহার।",
+    specs: ["গোল্ডেন ফিনিশ", "অ্যাডজাস্টেবল স্লাইডার চেইন"],
+  },
+  "butterfly-lariat": {
+    name: "বাটারফ্লাই ল্যারিয়াট",
+    short: "অ্যাডজাস্টেবল চেইনে টেক্সচার্ড প্রজাপতি পেন্ডেন্ট।",
+    desc: "অ্যাডজাস্টেবল স্লাইডার চেইনে সূক্ষ্ম টেক্সচারের প্রজাপতি পেন্ডেন্ট। নাজুক, হালকা এবং দারুণ আকর্ষণীয়।",
+    specs: ["গোল্ডেন ফিনিশ", "অ্যাডজাস্টেবল স্লাইডার চেইন"],
+  },
+  "clover-pendant-necklace": {
+    name: "ক্লোভার পেন্ডেন্ট নেকলেস",
+    short: "ব্রাশড-ফিনিশ চার পাতার ক্লোভার।",
+    desc: "সূক্ষ্ম কেবল চেইনে ব্রাশড-ফিনিশ ক্লোভার পেন্ডেন্ট। ক্লাসিক, চিরন্তন এবং আভিজাত্যপূর্ণ।",
+    specs: ["গোল্ডেন ব্রাশড ফিনিশ", "সূক্ষ্ম কেবল চেইন"],
+  },
+  "ginkgo-leaf-lariat": {
+    name: "জিংকো লিফ ল্যারিয়াট",
+    short: "অ্যাডজাস্টেবল চেইনে জিংকো পাতার ডিজাইন।",
+    desc: "প্রকৃতির অনুপ্রেরণায় তৈরি অ্যাডজাস্টেবল স্লাইডার চেইনে সুন্দর জিংকো পাতার পেন্ডেন্ট।",
+    specs: ["গোল্ডেন ফিনিশ", "অ্যাডজাস্টেবল স্লাইডার চেইন"],
+  },
+  "golden-bead-necklace": {
+    name: "গোল্ডেন বিড নেকলেস",
+    short: "সূক্ষ্ম চেইনে একটি সোনালি বিড।",
+    desc: "সূক্ষ্ম চেইনে একটিমাত্র সোনালি বিড—প্রতিদিনের সাজে সামান্য ঝলমলে ছোঁয়া যোগ করার সহজ উপায়।",
+    specs: ["গোল্ডেন ফিনিশ", "সূক্ষ্ম চেইন"],
+  },
+  "bead-drop-lariat": {
+    name: "বিড ড্রপ ল্যারিয়াট",
+    short: "ড্রপ বিডসহ বিড স্লাইডার চেইন।",
+    desc: "সূক্ষ্ম বক্স চেইনে ড্রপ বিডসহ সোনালি বিড স্লাইডার। সহজেই অ্যাডজাস্ট ও লেয়ার করা যায়।",
+    specs: ["গোল্ডেন ফিনিশ", "অ্যাডজাস্টেবল স্লাইডার চেইন"],
+  },
+  "shamrock-lariat": {
+    name: "শ্যামরক ল্যারিয়াট",
+    short: "অ্যাডজাস্টেবল চেইনে লাকি শ্যামরক।",
+    desc: "অ্যাডজাস্টেবল স্লাইডার চেইনে পলিশড শ্যামরক পেন্ডেন্ট। কাছে রাখার মতো সৌভাগ্যের ছোঁয়া।",
+    specs: ["গোল্ডেন ফিনিশ", "অ্যাডজাস্টেবল স্লাইডার চেইন"],
+  },
+};
+
+const isBn = () => {
+  try {
+    if (typeof document !== "undefined" && document.body?.classList.contains("lang-bn")) return true;
+    return typeof localStorage !== "undefined" && localStorage.getItem("veloria_lang") === "bn";
+  } catch {
+    return false;
+  }
+};
+
+const localizeItem = (item) => {
+  if (!isBn()) return item;
+  const bn = BN_TEXT[item.id] || {};
+  return {
+    ...item,
+    name: item.name_bn || bn.name || item.name,
+    short: item.short_bn || bn.short || item.short,
+    desc: item.desc_bn || bn.desc || item.desc,
+    specs: Array.isArray(item.specs_bn) && item.specs_bn.length ? item.specs_bn : bn.specs || item.specs,
+  };
+};
+
 // ফ্যালব্যাক বা অফলাইন প্রোডাক্ট লিস্ট (ডাটাবেজ কানেক্ট না থাকলে এগুলো দেখাবে)
 export const PRODUCTS = [
   {
@@ -164,6 +266,7 @@ export const PRODUCTS = [
 const toProduct = (r) => ({
   id: r.id,
   name: r.name,
+  name_bn: r.name_bn,
   code: r.code,
   category: r.category,
   price: Number(r.price),
@@ -171,8 +274,11 @@ const toProduct = (r) => ({
   badge: r.badge || undefined,
   featured: !!r.featured,
   short: r.short || "",
+  short_bn: r.short_bn || "",
   desc: r.description || r.desc || "",
+  desc_bn: r.description_bn || r.desc_bn || "",
   specs: r.specs || ["100% Authentic Material", "Handcrafted finish", "Gift-ready packaging"],
+  specs_bn: r.specs_bn,
   images: r.images || [],
 });
 
@@ -184,18 +290,21 @@ export async function loadProducts() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      return PRODUCTS;
+      return PRODUCTS.map(localizeItem);
     }
     const mapped = (data || []).map(toProduct);
     PRODUCTS.splice(0, PRODUCTS.length, ...mapped);
-    return mapped;
+    return mapped.map(localizeItem);
   } catch (e) {
     console.error("Load products failed:", e);
-    return PRODUCTS;
+    return PRODUCTS.map(localizeItem);
   }
 }
 
-export const byId = (id) => PRODUCTS.find((p) => p.id === id);
+export const byId = (id) => {
+  const found = PRODUCTS.find((p) => p.id === id);
+  return found ? localizeItem(found) : undefined;
+};
 
 // Extra tracking line to match exact line count
 // Line padding 188

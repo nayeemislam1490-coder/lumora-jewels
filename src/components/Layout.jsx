@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { SITE, money } from "../config.js";
 import { useCart } from "../cart.jsx";
+import { LangToggle, useLang } from "../i18n.jsx";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -38,8 +39,14 @@ function Header() {
   const [open, setOpen] = useState(false);
   const { count } = useCart();
   const { pathname } = useLocation();
+  const { t } = useLang();
   useEffect(() => setOpen(false), [pathname]);
   const [first, ...rest] = SITE.name.split(" ");
+
+  const tr = (key, fallback) => {
+    const val = t(key);
+    return val && val !== key ? val : fallback;
+  };
 
   return (
     <header className="header">
@@ -50,15 +57,16 @@ function Header() {
           </BrandLogo>
         </Link>
         <nav className={`nav ${open ? "open" : ""}`}>
-          <NavLink to="/" end>Home</NavLink>
-          <NavLink to="/shop">Shop</NavLink>
-          <NavLink to="/about">Our Story</NavLink>
-          <NavLink to="/help">Help Center</NavLink>
-          <NavLink to="/contact">Contact</NavLink>
+          <NavLink to="/" end>{tr("nav.home", "Home")}</NavLink>
+          <NavLink to="/shop">{tr("nav.shop", "Shop")}</NavLink>
+          <NavLink to="/about">{tr("nav.about", "Our Story")}</NavLink>
+          <NavLink to="/help">{tr("nav.help", "Help Center")}</NavLink>
+          <NavLink to="/contact">{tr("nav.contact", "Contact")}</NavLink>
         </nav>
         <div className="header-actions">
+          <LangToggle />
           <Link to="/cart" className="cart-link">
-            <span className="t">Cart</span>
+            <span className="t">{tr("nav.cart", "Cart")}</span>
             <span className="cart-count">{count}</span>
           </Link>
           <button className="menu-btn" aria-label="Menu" onClick={() => setOpen(!open)}>
@@ -71,6 +79,12 @@ function Header() {
 }
 
 function Footer() {
+  const { t } = useLang();
+  const tr = (key, fallback) => {
+    const val = t(key);
+    return val && val !== key ? val : fallback;
+  };
+
   return (
     <footer className="footer">
       <div className="container">
@@ -79,7 +93,7 @@ function Footer() {
             <Link to="/" className="logo">
               <BrandLogo size={36}>{SITE.name}</BrandLogo>
             </Link>
-            <p>{SITE.tagline}.</p>
+            <p>{tr("footer.tagline", `${SITE.tagline}.`)}</p>
             <div className="socials">
               {SITE.facebook && <a href={SITE.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">f</a>}
               {SITE.instagram && <a href={SITE.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">ig</a>}
@@ -87,28 +101,28 @@ function Footer() {
             </div>
           </div>
           <div>
-            <h5>Shop</h5>
+            <h5>{tr("footer.shop", "Shop")}</h5>
             <ul>
-              <li><Link to="/shop">All Jewelry</Link></li>
-              <li><Link to="/shop?cat=Necklaces">Necklaces</Link></li>
-              <li><Link to="/shop?cat=Earrings">Earrings</Link></li>
-              <li><Link to="/shop?cat=Rings">Rings</Link></li>
-              <li><Link to="/shop?cat=Sets">Sets</Link></li>
+              <li><Link to="/shop">{tr("footer.allJewelry", "All Jewelry")}</Link></li>
+              <li><Link to="/shop?cat=Necklaces">{tr("cat.necklaces", "Necklaces")}</Link></li>
+              <li><Link to="/shop?cat=Earrings">{tr("cat.earrings", "Earrings")}</Link></li>
+              <li><Link to="/shop?cat=Rings">{tr("cat.rings", "Rings")}</Link></li>
+              <li><Link to="/shop?cat=Sets">{tr("cat.sets", "Sets")}</Link></li>
             </ul>
           </div>
           <div>
-            <h5>Help</h5>
+            <h5>{tr("footer.help", "Help")}</h5>
             <ul>
-              <li><Link to="/help">Help Center / FAQ</Link></li>
-              <li><Link to="/contact">Contact Us</Link></li>
-              <li><Link to="/policy/shipping">Shipping & Delivery</Link></li>
-              <li><Link to="/policy/returns">Returns & Exchange</Link></li>
-              <li><Link to="/policy/privacy">Privacy Policy</Link></li>
-              <li><Link to="/policy/terms">Terms & Conditions</Link></li>
+              <li><Link to="/help">{tr("footer.helpCenter", "Help Center / FAQ")}</Link></li>
+              <li><Link to="/contact">{tr("footer.contactUs", "Contact Us")}</Link></li>
+              <li><Link to="/policy/shipping">{tr("footer.shipping", "Shipping & Delivery")}</Link></li>
+              <li><Link to="/policy/returns">{tr("footer.returns", "Returns & Exchange")}</Link></li>
+              <li><Link to="/policy/privacy">{tr("footer.privacy", "Privacy Policy")}</Link></li>
+              <li><Link to="/policy/terms">{tr("footer.terms", "Terms & Conditions")}</Link></li>
             </ul>
           </div>
           <div>
-            <h5>Contact</h5>
+            <h5>{tr("footer.contact", "Contact")}</h5>
             <ul>
               {SITE.address && <li>{SITE.address}</li>}
               <li><a href={`tel:${SITE.phone.replace(/\s/g, "")}`}>{SITE.phone}</a></li>
@@ -118,7 +132,7 @@ function Footer() {
           </div>
         </div>
         <div className="copy" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-          <span>© {new Date().getFullYear()} {SITE.name}. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} {SITE.name}. {tr("footer.rights", "All rights reserved.")}</span>
         </div>
       </div>
     </footer>
@@ -182,13 +196,19 @@ function FloatingWhatsApp() {
 export default function Layout() {
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith("/dashboard");
+  const { t } = useLang();
+
+  const defaultAnnounce = `Free delivery on orders over ${money(SITE.freeShippingOver)} • Easy ${SITE.returnDays}-day exchange`;
+  const announceText = t("announce.bar") && t("announce.bar") !== "announce.bar"
+    ? t("announce.bar")
+    : defaultAnnounce;
 
   return (
     <>
       <ScrollToTop />
       {!isAdmin && (
         <div className="announce">
-          Free delivery on orders over {money(SITE.freeShippingOver)} &nbsp;•&nbsp; Easy {SITE.returnDays}-day exchange
+          {announceText}
         </div>
       )}
       {!isAdmin && <Header />}

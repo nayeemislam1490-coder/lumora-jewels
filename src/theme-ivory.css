@@ -13,6 +13,10 @@
 /* 1) The whole page is light with dark ink text */
 html, body { background: var(--ivory-page) !important; color: var(--ink) !important; }
 body * { color: inherit; }
+body.lang-bn, body.lang-bn * {
+  font-family: "Noto Sans Bengali", system-ui, sans-serif !important;
+  line-height: 1.65;
+}
 
 /* 2) Plain headings and text on light sections */
 main h1, main h2, main h3, main h4, main p, main li, main span, main small, main b, main label {

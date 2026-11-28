@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { SITE } from "../config.js";
 import { CATEGORIES, PRODUCTS } from "../products.js";
+import { useLang } from "../i18n.jsx";
 import Reveal from "../components/Reveal.jsx";
 import HeroArt from "../components/HeroArt.jsx";
 import "../hero-mobile.css";
@@ -90,6 +91,12 @@ export default function Home() {
   const wide = useWide();
   const [inApp] = useState(() => isInAppBrowser());
   const [canWebGL] = useState(() => hasWebGL());
+  const { t } = useLang();
+
+  const tr = (key, fallback) => {
+    const val = t(key);
+    return val && val !== key ? val : fallback;
+  };
 
   useEffect(() => {
     if (inApp) return;
@@ -112,24 +119,26 @@ export default function Home() {
       <section className="hero" ref={heroRef}>
         <div className="hero-grid">
           <div>
-            <span className="eyebrow hero-anim">New collection</span>
+            <span className="eyebrow hero-anim">{tr("home.eyebrow", "New collection")}</span>
             <h1 className="hero-anim">
-              Shine <em>like</em> you mean it.
+              {tr("home.heroTitleBefore", "Shine")} <em>{tr("home.heroTitleEm", "like")}</em> {tr("home.heroTitleAfter", "you mean it.")}
             </h1>
             <p className="hero-anim">
-              Delicate necklaces, sparkling sets and little treasures, designed for everyday luxury and gifts they will
-              never forget.
+              {tr(
+                "home.heroDesc",
+                "Delicate necklaces, sparkling sets and little treasures, designed for everyday luxury and gifts they will never forget."
+              )}
             </p>
             <div className="hero-cta hero-anim">
-              <Link to="/shop" className="btn btn-gold">Shop the collection</Link>
-              <Link to="/about" className="btn btn-ghost">Our story</Link>
+              <Link to="/shop" className="btn btn-gold">{tr("home.shopCta", "Shop the collection")}</Link>
+              <Link to="/about" className="btn btn-ghost">{tr("home.storyCta", "Our story")}</Link>
             </div>
             <div className="hero-facts hero-anim">
-              <span><b>{PRODUCTS.length}+</b> designs</span>
+              <span><b>{PRODUCTS.length}+</b> {tr("home.factDesigns", "designs")}</span>
               <i />
-              <span><b>{SITE.returnDays} days</b> exchange</span>
+              <span><b>{SITE.returnDays} {tr("home.factDays", "days")}</b> {tr("home.factExchange", "exchange")}</span>
               <i />
-              <span><b>Gift-ready</b> packaging</span>
+              <span><b>{tr("home.factGiftBold", "Gift-ready")}</b> {tr("home.factGiftRest", "packaging")}</span>
             </div>
           </div>
           <div className="hero-3d">
@@ -140,7 +149,7 @@ export default function Home() {
             ) : (
               <HeroArt />
             )}
-            {wide && canWebGL && <div className="hero-hint">Move your mouse · Scroll</div>}
+            {wide && canWebGL && <div className="hero-hint">{tr("home.hint3d", "Move your mouse · Scroll")}</div>}
           </div>
         </div>
       </section>
@@ -153,7 +162,7 @@ export default function Home() {
               <span className="home-cat-ico">
                 <img src={catImage(c)} alt="" loading={inApp ? "eager" : "lazy"} />
               </span>
-              <span>{c}</span>
+              <span>{tr(`cat.${c.toLowerCase()}`, c)}</span>
             </Link>
           ))}
         </div>
@@ -163,9 +172,9 @@ export default function Home() {
       <section className="home-best">
         <div className="home-wrap">
           <Reveal className="home-head">
-            <span className="home-kicker">Best sellers</span>
-            <h2>Our <em>favourites</em></h2>
-            <Link to="/shop" className="home-viewall">View all</Link>
+            <span className="home-kicker">{tr("home.bestKicker", "Best sellers")}</span>
+            <h2>{tr("home.bestTitleBefore", "Our")} <em>{tr("home.bestTitleEm", "favourites")}</em></h2>
+            <Link to="/shop" className="home-viewall">{tr("home.viewAll", "View all")}</Link>
           </Reveal>
           <div className="home-best-grid">
             {best.map((p, i) => (
@@ -177,9 +186,9 @@ export default function Home() {
 
       {/* ---------------- TRUST ---------------- */}
       <section className="home-trust">
-        <div><b>Secure</b><span>Checkout</span></div>
-        <div><b>Gift</b><span>Ready</span></div>
-        <div><b>Easy</b><span>Exchange</span></div>
+        <div><b>{tr("home.trust1Bold", "Secure")}</b><span>{tr("home.trust1Sub", "Checkout")}</span></div>
+        <div><b>{tr("home.trust2Bold", "Gift")}</b><span>{tr("home.trust2Sub", "Ready")}</span></div>
+        <div><b>{tr("home.trust3Bold", "Easy")}</b><span>{tr("home.trust3Sub", "Exchange")}</span></div>
       </section>
 
       {/* ---------------- STORY (desktop) ---------------- */}
@@ -189,15 +198,17 @@ export default function Home() {
             <img src={model} alt="Jewelry styled on a model" loading={inApp ? "eager" : "lazy"} />
           </Reveal>
           <Reveal delay={2}>
-            <span className="eyebrow">Designed to be worn</span>
-            <h2 className="title">Everyday luxury, <em>made personal</em></h2>
+            <span className="eyebrow">{tr("home.storyEyebrow", "Designed to be worn")}</span>
+            <h2 className="title">{tr("home.storyTitleBefore", "Everyday luxury,")} <em>{tr("home.storyTitleEm", "made personal")}</em></h2>
             <p>
-              Every piece in our collection is chosen to feel special without being complicated: light on the neck,
-              easy to layer and beautiful enough to gift.
+              {tr(
+                "home.storyDesc",
+                "Every piece in our collection is chosen to feel special without being complicated: light on the neck, easy to layer and beautiful enough to gift."
+              )}
             </p>
             <div className="hero-cta">
-              <Link to="/shop" className="btn btn-gold">Start shopping</Link>
-              <Link to="/contact" className="btn btn-ghost">Talk to us</Link>
+              <Link to="/shop" className="btn btn-gold">{tr("home.startShopping", "Start shopping")}</Link>
+              <Link to="/contact" className="btn btn-ghost">{tr("home.talkToUs", "Talk to us")}</Link>
             </div>
           </Reveal>
         </div>
@@ -205,23 +216,23 @@ export default function Home() {
 
       {/* ---------------- WHATSAPP ---------------- */}
       <section className="home-wa">
-        <span className="home-kicker">Need help choosing?</span>
-        <h2>Chat with us on <em>WhatsApp</em></h2>
-        <p>Send a message and we will recommend the perfect piece for you or your loved one.</p>
+        <span className="home-kicker">{tr("home.waKicker", "Need help choosing?")}</span>
+        <h2>{tr("home.waTitleBefore", "Chat with us on")} <em>{tr("home.waTitleEm", "WhatsApp")}</em></h2>
+        <p>{tr("home.waDesc", "Send a message and we will recommend the perfect piece for you or your loved one.")}</p>
         <div className="home-wa-btns">
           <a className="btn btn-gold" href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noreferrer">
-            Message us
+            {tr("home.messageUs", "Message us")}
           </a>
-          <Link to="/help" className="btn btn-ghost">Help Center</Link>
+          <Link to="/help" className="btn btn-ghost">{tr("nav.help", "Help Center")}</Link>
         </div>
       </section>
 
       {/* ---------------- MOBILE TAB BAR ---------------- */}
       <nav className="home-tabbar" aria-label="Quick menu">
-        <Link to="/" className="active"><i>⌂</i><span>Home</span></Link>
-        <Link to="/shop"><i>◇</i><span>Shop</span></Link>
-        <Link to="/cart"><i>▢</i><span>Cart</span></Link>
-        <Link to="/orders"><i>≡</i><span>Orders</span></Link>
+        <Link to="/" className="active"><i>⌂</i><span>{tr("nav.home", "Home")}</span></Link>
+        <Link to="/shop"><i>◇</i><span>{tr("nav.shop", "Shop")}</span></Link>
+        <Link to="/cart"><i>▢</i><span>{tr("nav.cart", "Cart")}</span></Link>
+        <Link to="/orders"><i>≡</i><span>{tr("nav.orders", "Orders")}</span></Link>
       </nav>
     </div>
   );

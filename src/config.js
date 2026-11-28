@@ -28,6 +28,28 @@ export const SITE = {
   mobilePayment: "Send money to 01314415659 (bKash / Nagad), then share the transaction ID on WhatsApp.",
 };
 
+const BN_SITE = {
+  tagline: "চিরন্তন সৌন্দর্য, যা যত্নে রাখার মতো।",
+  address: "ঢাকা, বাংলাদেশ",
+  hours: "প্রতিদিন, সকাল ১০:০০ টা – রাত ৯:০০ টা",
+  deliveryTime: "২–৪ কর্মদিবস",
+  mobilePayment: "01314415659 (বিকাশ / নগদ) নম্বরে সেন্ড মানি করে WhatsApp-এ ট্রানজেকশন আইডি পাঠান।",
+};
+
+const isBn = () => {
+  try {
+    if (typeof document !== "undefined" && document.body?.classList.contains("lang-bn")) return true;
+    return typeof localStorage !== "undefined" && localStorage.getItem("veloria_lang") === "bn";
+  } catch {
+    return false;
+  }
+};
+
+export const siteText = (key) => {
+  if (isBn() && BN_SITE[key]) return BN_SITE[key];
+  return SITE[key] ?? "";
+};
+
 export const BD_DISTRICTS = [
   "Dhaka",
   "Bagerhat", "Bandarban", "Barguna", "Barishal", "Bhola", "Bogura", "Brahmanbaria",

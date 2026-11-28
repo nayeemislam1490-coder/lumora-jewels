@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import "./theme-ivory.css";
 import App from "./App.jsx";
+import { LangProvider } from "./i18n.jsx";
 import { CartProvider } from "./cart.jsx";
 import { loadProducts } from "./products.js";
 
@@ -24,9 +25,11 @@ function mount() {
   createRoot(document.getElementById("root")).render(
     <StrictMode>
       <BrowserRouter>
-        <CartProvider>
-          <App />
-        </CartProvider>
+        <LangProvider>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </LangProvider>
       </BrowserRouter>
     </StrictMode>
   );

@@ -7,6 +7,16 @@ const CartCtx = createContext(null);
 const KEY = "lumora_cart_v1";
 const COUPON_KEY = "lumora_coupon_v1";
 
+const getActiveLang = () => {
+  try {
+    return localStorage.getItem("veloria_lang") === "bn" ? "bn" : "en";
+  } catch {
+    return "en";
+  }
+};
+
+const pickMsg = (en, bn) => (getActiveLang() === "bn" ? bn : en);
+
 function reducer(state, a) {
   switch (a.type) {
     case "add": {
@@ -110,18 +120,32 @@ export function useCart() {
 
   const applyCoupon = async (rawCode) => {
     const clean = String(rawCode || "").trim().toUpperCase();
-    if (!clean) return { ok: false, message: "Please enter a discount code." };
-    if (subtotal <= 0) return { ok: false, message: "Your cart is empty." };
+    if (!clean) {
+      return { ok: false, message: pickMsg("Please enter a discount code.", "দয়া করে একটি ডিসকাউন্ট কোড লিখুন।") };
+    }
+    if (subtotal <= 0) {
+      return { ok: false, message: pickMsg("Your cart is empty.", "আপনার কার্ট খালি।") };
+    }
 
     const { data, error } = await supabase.rpc("check_coupon", {
       p_code: clean,
       p_subtotal: subtotal,
       p_phone: null,
     });
-    if (error || !data) return { ok: false, message: "Could not check the code. Please try again." };
-    if (!data.ok) return { ok: false, message: data.message || "Invalid or inactive discount code." };
+    if (error || !data) {
+      return {
+        ok: false,
+        message: pickMsg("Could not check the code. Please try again.", "কোড যাচাই করা যায়নি। আবার চেষ্টা করুন।"),
+      };
+    }
+    if (!data.ok) {
+      return {
+        ok: false,
+        message: data.message || pickMsg("Invalid or inactive discount code.", "ডিসকাউন্ট কোডটি সঠিক নয় বা চালু নেই।"),
+      };
+    }
     setCoupon(data);
-    return { ok: true, message: `Code ${data.code} applied.` };
+    return { ok: true, message: pickMsg(`Code ${data.code} applied.`, `${data.code} কোডটি প্রয়োগ হয়েছে।`) };
   };
 
   const verifyCouponForOrder = async (phone) => {
@@ -133,15 +157,32 @@ export function useCart() {
       p_subtotal: subtotal,
       p_phone: phone || null,
     });
-    if (error || !data) return { valid: false, message: "Could not verify the discount code. Please try again." };
+    if (error || !data) {
+      return {
+        valid: false,
+        message: pickMsg(
+          "Could not verify the discount code. Please try again.",
+          "ডিসকাউন্ট কোড যাচাই করা যায়নি। আবার চেষ্টা করুন।"
+        ),
+      };
+    }
     if (!data.ok) {
       setCoupon(null);
-      return { valid: false, message: data.message || "This discount code is no longer valid." };
+      return {
+        valid: false,
+        message: data.message || pickMsg("This discount code is no longer valid.", "এই ডিসকাউন্ট কোডটি আর বৈধ নয়।"),
+      };
     }
     const verifiedDiscount = computeDiscount(data, subtotal);
     const minOrder = Math.max(0, Number(data.min_order) || 0);
     if (subtotal < minOrder || verifiedDiscount <= 0) {
-      return { valid: false, message: `Minimum order of ৳${Math.round(minOrder)} required for ${data.code}.` };
+      return {
+        valid: false,
+        message: pickMsg(
+          `Minimum order of ৳${Math.round(minOrder)} required for ${data.code}.`,
+          `${data.code} কোডের জন্য ন্যূনতম ৳${Math.round(minOrder)} অর্ডার প্রয়োজন।`
+        ),
+      };
     }
     setCoupon(data);
     return { valid: true, coupon: data, discount: verifiedDiscount };
