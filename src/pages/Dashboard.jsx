@@ -195,7 +195,7 @@ export default function Dashboard() {
   // Supabase থেকে প্রোডাক্ট লোড করার ব্যবস্থা
   const [products, setProducts] = useState([]);
   const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", description: "", imagesText: "" });
+  const [editForm, setEditForm] = useState({ name: "", price: "", old_price: "", code: "", category: CATEGORIES[0] || "Necklaces", description: "", imagesText: "" });
 
   const loadAdminProducts = async () => {
     const { data, error } = await supabase
@@ -215,6 +215,7 @@ export default function Dashboard() {
   const [newProd, setNewProd] = useState({ 
     name: "", 
     price: "", 
+    old_price: "",
     code: "", 
     category: CATEGORIES[0] || "Necklaces", 
     description: "", // নতুন প্রোডাক্ট ডিটেইলস ফিল্ড
@@ -292,6 +293,7 @@ export default function Dashboard() {
     // খালি লিংকগুলো ফিল্টার করে বাদ দেওয়া হচ্ছে
     const filteredImages = newProd.images.filter((url) => url.trim() !== "");
     const finalImages = filteredImages.length > 0 ? filteredImages : ["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600"];
+    const parsedOldPrice = String(newProd.old_price ?? "").trim();
 
     const row = {
       id: "p" + Date.now(),
@@ -299,6 +301,7 @@ export default function Dashboard() {
       code: newProd.code || "LJ-" + Math.floor(100 + Math.random() * 900),
       category: newProd.category,
       price: Number(newProd.price),
+      old_price: parsedOldPrice !== "" && Number(parsedOldPrice) > 0 ? Number(parsedOldPrice) : null,
       featured: true,
       description: newProd.description || "Exquisite handcrafted jewelry piece designed for elegance and timeless beauty.",
       specs: ["100% Authentic Material", "Handcrafted finish", "Gift-ready packaging"],
@@ -312,7 +315,7 @@ export default function Dashboard() {
     }
 
     setProducts([row, ...products]);
-    setNewProd({ name: "", price: "", code: "", category: CATEGORIES[0] || "Necklaces", description: "", images: [""] });
+    setNewProd({ name: "", price: "", old_price: "", code: "", category: CATEGORIES[0] || "Necklaces", description: "", images: [""] });
     alert("Product added successfully with details and images to Supabase!");
   };
 
@@ -321,6 +324,7 @@ export default function Dashboard() {
     setEditForm({
       name: p.name || "",
       price: p.price ?? "",
+      old_price: p.old_price ?? "",
       code: p.code || "",
       category: p.category || CATEGORIES[0] || "Necklaces",
       description: p.description || p.desc || "",
@@ -332,9 +336,11 @@ export default function Dashboard() {
     e.preventDefault();
     if (!editId || !editForm.name || editForm.price === "") return;
     const imgs = editForm.imagesText.split("\n").map((u) => u.trim()).filter(Boolean);
+    const parsedOld = String(editForm.old_price ?? "").trim();
     const updates = {
       name: editForm.name.trim(),
       price: Number(editForm.price),
+      old_price: parsedOld !== "" && Number(parsedOld) > 0 ? Number(parsedOld) : null,
       code: editForm.code.trim(),
       category: editForm.category,
       description: editForm.description,
@@ -544,6 +550,13 @@ export default function Dashboard() {
                   required
                 />
                 <input
+                  type="number"
+                  placeholder="Old Price in BDT (optional)"
+                  value={newProd.old_price}
+                  onChange={(e) => setNewProd({ ...newProd, old_price: e.target.value })}
+                  style={{ padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--line)", outline: "none" }}
+                />
+                <input
                   type="text"
                   placeholder="Product Code (e.g. LJ-09)"
                   value={newProd.code}
@@ -616,6 +629,7 @@ export default function Dashboard() {
                 <form onSubmit={handleSaveEdit} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
                   <input type="text" placeholder="Product Name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)" }} required />
                   <input type="number" placeholder="Price" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)" }} required />
+                  <input type="number" placeholder="Old Price (optional)" value={editForm.old_price} onChange={(e) => setEditForm({ ...editForm, old_price: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)" }} />
                   <input type="text" placeholder="Code" value={editForm.code} onChange={(e) => setEditForm({ ...editForm, code: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)" }} />
                   <select value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--line)", background: "#fff" }}>
                     {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
@@ -665,7 +679,12 @@ export default function Dashboard() {
                         </td>
                         <td><span className="vd-pill" style={{ background: "var(--gold-s)", color: "var(--maroon)" }}>{p.category || "General"}</span></td>
                         <td>{p.code || "N/A"}</td>
-                        <td>{money(p.price)}</td>
+                        <td>
+                          <b>{money(p.price)}</b>
+                          {Number(p.old_price) > Number(p.price) && (
+                            <s style={{ marginLeft: 6, color: "var(--mut)", fontSize: 12 }}>{money(p.old_price)}</s>
+                          )}
+                        </td>
                         <td style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                           <button onClick={() => startEditProduct(p)} style={{ color: "var(--maroon)", fontWeight: 600 }}>Edit</button>
                           <button onClick={() => handleDeleteProduct(p.id)} style={{ color: "var(--down)", display: "flex", alignItems: "center", gap: 4 }}>

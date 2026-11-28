@@ -221,7 +221,7 @@ export default function Home() {
         <Link to="/" className="active"><i>⌂</i><span>Home</span></Link>
         <Link to="/shop"><i>◇</i><span>Shop</span></Link>
         <Link to="/cart"><i>▢</i><span>Cart</span></Link>
-        <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noreferrer"><i>✆</i><span>WhatsApp</span></a>
+        <Link to="/orders"><i>≡</i><span>Orders</span></Link>
       </nav>
     </div>
   );

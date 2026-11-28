@@ -3,11 +3,13 @@ import { Link } from "react-router-dom";
 import { SITE, BD_DISTRICTS, getShippingFee, money, hasPlaceholderWhatsapp } from "../config.js";
 import { useCart } from "../cart.jsx";
 import { supabase } from "../supabase.js";
+import { saveMyOrder } from "../myOrders.js";
 
 const ORDER_KEY = "lumora_last_order_v1";
 const LAST_SUBMIT_KEY = "lumora_last_order_ts_v1";
 const FBQ_PURCHASE_KEY = "lumora_fbq_purchase_v1";
 const OUTSIDE_DHAKA_FEE = SITE.outsideDhakaFee ?? 120;
+const NOTIFY_ORDER_URL = "https://jocaqgeavsghhxhrsayl.supabase.co/functions/v1/notify-order";
 
 const DHAKA_ZONE_DISTRICTS = new Set(["dhaka", "gazipur", "narayanganj"]);
 const DHAKA_SUB_AREAS = ["keraniganj", "savar", "dhamrai", "ashulia"];
@@ -246,6 +248,7 @@ export function Checkout() {
   const [districtMenuOpen, setDistrictMenuOpen] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [done, setDone] = useState(() => (cart.lines.length === 0 ? loadOrder() : null));
 
   useEffect(() => {
@@ -372,7 +375,9 @@ export function Checkout() {
     const url = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(buildMessage(id, orderLines, totals))}`;
     const paymentRecord =
       f.pay === "cod" ? "cod" : `mobile (${f.payPhone.trim().slice(0, 25)} | TrxID: ${f.trxId.trim().slice(0, 40)})`;
-    const baseItemText = orderLines.map((l) => `${l.product.name} (x${l.qty})`).join(", ");
+    const baseItemText = orderLines
+      .map((l) => (l.product.code ? `${l.product.name} [${l.product.code}] (x${l.qty})` : `${l.product.name} (x${l.qty})`))
+      .join(", ");
     const itemText = discount > 0 && couponCode ? `${baseItemText} [Coupon: ${couponCode} −${money(discount)}]` : baseItemText;
     const areaLabel = isDhakaZone(cleanCity, cleanAddress) ? "Inside Dhaka" : "Outside Dhaka";
 
@@ -380,7 +385,13 @@ export function Checkout() {
       .from("orders")
       .insert({
         id,
-        items: orderLines.map((l) => ({ id: l.id, name: l.product.name, price: l.product.price, qty: l.qty })),
+        items: orderLines.map((l) => ({
+          id: l.id,
+          code: l.product.code || "",
+          name: l.product.name,
+          price: l.product.price,
+          qty: l.qty,
+        })),
         item_text: itemText,
         total,
         shipping_fee: shipping,
@@ -409,10 +420,38 @@ export function Checkout() {
     trackPurchase(id, total, orderLines);
 
     const order = { id, url, total, pay: f.pay, savedOk, saveError: error?.message || "" };
+    setCopied(false);
     setDone(order);
     saveOrder(order);
+    if (savedOk) {
+      saveMyOrder(id);
+      fetch(NOTIFY_ORDER_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id }),
+        keepalive: true,
+      }).catch(() => {});
+    }
     cart.clear();
-    if (!hasPlaceholderWhatsapp()) window.open(url, "_blank");
+  };
+
+  const handleCopyOrderId = async (orderId) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(orderId);
+      } else {
+        const el = document.createElement("textarea");
+        el.value = orderId;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
   };
 
   if (done) {
@@ -420,21 +459,52 @@ export function Checkout() {
       <div className="container success">
         <div className="tick">{done.savedOk === false ? "!" : "✓"}</div>
         <h2>{done.savedOk === false ? "Order created with warning" : "Thank you!"}</h2>
-        <p>Your order <b style={{ color: "var(--gold-light)" }}>{done.id}</b> is ready to send. Total: {money(done.total)}.</p>
+        <p>Your order number is</p>
+        <div
+          className="order-no"
+          style={{
+            fontSize: "2rem",
+            fontWeight: 700,
+            color: "var(--gold-light)",
+            letterSpacing: "0.08em",
+            margin: "6px 0 4px",
+          }}
+        >
+          {done.id}
+        </div>
+        <p className="note">Total: {money(done.total)}</p>
         {done.savedOk === false ? (
           <div className="warn">
-            Could not save order to dashboard database ({done.saveError || "check Supabase insert permission"}). Please send the order on WhatsApp so it is not missed.
+            Could not save order to dashboard database ({done.saveError || "check Supabase insert permission"}). You can still send it on WhatsApp below.
           </div>
         ) : (
-          <p>Press the button below to send your order details to us on WhatsApp. We will confirm it with you shortly.</p>
+          <>
+            <p>
+              Please save or screenshot this number. You can check your order status any time in <b>View my orders</b> on this phone.
+            </p>
+            <div className="hero-cta" style={{ justifyContent: "center", marginTop: 12 }}>
+              <button type="button" className="btn btn-ghost" onClick={() => handleCopyOrderId(done.id)}>
+                {copied ? "Copied ✓" : "Copy number"}
+              </button>
+              <Link to={`/orders?new=${done.id}`} className="btn btn-gold" onClick={() => saveOrder(null)}>
+                View my orders
+              </Link>
+            </div>
+          </>
         )}
         {done.pay === "mobile" && <p className="note">{SITE.mobilePayment}</p>}
         {hasPlaceholderWhatsapp() && (
           <div className="warn">Owner note: set your real WhatsApp number in <b>src/config.js</b> so orders reach you.</div>
         )}
         <div className="hero-cta" style={{ justifyContent: "center", marginTop: 26 }}>
-          <a href={done.url} target="_blank" rel="noreferrer" className="btn btn-gold">Send order on WhatsApp</a>
-          <Link to="/shop" className="btn btn-ghost" onClick={() => saveOrder(null)}>Continue shopping</Link>
+          {done.savedOk === false && (
+            <a href={done.url} target="_blank" rel="noreferrer" className="btn btn-gold">
+              Send order on WhatsApp
+            </a>
+          )}
+          <Link to="/shop" className="btn btn-ghost" onClick={() => saveOrder(null)}>
+            Continue shopping
+          </Link>
         </div>
       </div>
     );
@@ -457,7 +527,7 @@ export function Checkout() {
     <>
       <div className="page-head">
         <div className="container">
-          <div className="crumbs"><Link to="/cart">Cart</Link> / Checkout</div>
+          <div className="crumbs"><Link to="/">Home</Link> / Checkout</div>
           <h1 className="title"><em>Checkout</em></h1>
         </div>
       </div>
@@ -599,7 +669,7 @@ export function Checkout() {
           <button type="submit" disabled={submitting} className="btn btn-gold btn-block" style={{ marginTop: 18 }}>
             {submitting ? "Verifying & saving..." : "Place order"}
           </button>
-          <p className="note">Your order details will be sent to us on WhatsApp for confirmation.</p>
+          <p className="note">Your order will be saved directly to our store and appear in your Orders list.</p>
         </Summary>
       </form>
     </>

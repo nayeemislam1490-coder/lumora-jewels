@@ -1,0 +1,288 @@
+/* Ivory theme v2: light page, navy hero and footer.
+   Load LAST (after index.css and all home css). Replace the old theme-ivory.css with this file. */
+
+:root {
+  --ivory-page: #F7F1E3;
+  --ivory-card: #FFFDF8;
+  --ivory-line: rgba(18, 26, 51, 0.14);
+  --ink: #161C33;
+  --ink-soft: #4B5063;
+  --gold-ink: #8E6A2C;
+}
+
+/* 1) The whole page is light with dark ink text */
+html, body { background: var(--ivory-page) !important; color: var(--ink) !important; }
+body * { color: inherit; }
+
+/* 2) Plain headings and text on light sections */
+main h1, main h2, main h3, main h4, main p, main li, main span, main small, main b, main label {
+  color: var(--ink);
+}
+main em, .title em, .home-head h2 em { color: var(--gold-ink) !important; }
+.eyebrow, .home-kicker, .best-price, .home-viewall, .view-all { color: var(--gold-ink) !important; }
+.lead, .note, .best-code, .home-trust span { color: var(--ink-soft) !important; }
+
+/* 3) Keep the hero and footer navy with light text (these are the dark blocks) */
+.hero, .hero * { color: #F7F1E3; }
+.hero { background: linear-gradient(180deg, #121A33 0%, #0B1020 100%) !important; }
+.hero h1 em, .hero em { color: #F1DDA5 !important; }
+.hero p { color: #C9C2AE !important; }
+.footer, .footer * { color: #F7F1E3; }
+.footer { background: #0B1020 !important; }
+.footer a { color: #C9C2AE; }
+
+/* 4) WhatsApp / help block: plain light, no grey glow */
+.home-wa, .cta-band { background: var(--ivory-page) !important; color: var(--ink) !important; }
+.home-wa h2, .home-wa p, .cta-band h2, .cta-band p { color: var(--ink) !important; }
+.home-wa h2 em, .cta-band h2 em { color: var(--gold-ink) !important; }
+
+/* 5) Cards, product tiles, trust boxes */
+.card, .product-card, .best-card, .feature, .story-img, .home-cats, .home-trust,
+.card-img, .gallery-main, .product-info, .trust-box {
+  background: var(--ivory-card) !important;
+  border-color: var(--ivory-line) !important;
+  color: var(--ink) !important;
+}
+.best-card *, .product-card *, .card * { color: var(--ink); }
+.best-card .best-code, .product-card .code, .card .code { color: var(--ink-soft) !important; }
+.best-card .best-price, .product-card .price, .card .price { color: var(--gold-ink) !important; font-weight: 600; }
+.best-img, .card-img { background: #EFE7D6 !important; }
+
+/* 6) Buttons on light background */
+.btn-ghost, .btn-outline, .buy-now, .btn-secondary {
+  color: var(--ink) !important;
+  border-color: var(--gold-ink) !important;
+  background: transparent !important;
+}
+.btn-gold { color: #161C33 !important; }
+.btn-gold:hover, .btn-ghost:hover { opacity: 0.9; }
+
+/* 7) Category pills and trust strip */
+.home-cat { color: var(--ink) !important; }
+.home-cat-ico { background: var(--ivory-card) !important; border-color: var(--gold-ink) !important; }
+.home-trust b { color: var(--gold-ink) !important; }
+
+/* 8) Form fields */
+input, textarea, select, .select {
+  background: var(--ivory-card) !important;
+  color: var(--ink) !important;
+  border-color: var(--ivory-line) !important;
+}
+input::placeholder, textarea::placeholder { color: #8A8F9E !important; }
+
+/* 9) Product page detail text */
+.product-page h1, .product-page h2, .product-page p, .product-page li { color: var(--ink) !important; }
+.product-page .price { color: var(--gold-ink) !important; }
+
+/* 10) Phone tab bar stays dark for contrast */
+.home-tabbar { background: #0B1020 !important; }
+.home-tabbar a { color: #A9A394 !important; }
+.home-tabbar a.active { color: #D4B16A !important; }
+
+/* 11) Cart and checkout: the summary box stays dark navy, the item rows stay light.
+   Classes come from CartCheckout.jsx: .summary, .sum-row, .line, .line-right */
+.summary {
+  background: #121A33 !important;
+  color: #F7F1E3 !important;
+  border-color: rgba(212, 177, 106, 0.22) !important;
+}
+.summary * { color: #F7F1E3 !important; }
+.summary .sum-row.total b, .summary b { color: #F1DDA5 !important; }
+.summary .btn-gold, .summary button.btn-gold { color: #161C33 !important; }
+.summary .btn-ghost, .summary button.btn-ghost { color: #F7F1E3 !important; border-color: #D4B16A !important; }
+.summary input, .summary .discount-input {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #F7F1E3 !important;
+  border-color: rgba(212, 177, 106, 0.3) !important;
+}
+.summary input::placeholder { color: #A9A394 !important; }
+
+.line {
+  background: var(--ivory-card) !important;
+  color: var(--ink) !important;
+  border-color: var(--ivory-line) !important;
+}
+.line * { color: var(--ink) !important; }
+.line .price, .line b { color: var(--gold-ink) !important; }
+.line img { background: #EFE7D6; }
+
+/* Order success page contrast */
+.success h2, .success p { color: var(--ink); }
+.success .order-no { color: var(--gold-ink) !important; font-weight: 700; }
+.success .btn-ghost { color: var(--ink); border-color: var(--gold-ink); }
+.success .note { color: var(--ink-soft); }
+
+/* Complete contrast lock across Home, Shop, Product detail, specs, assure & dark blocks */
+.home-v4,
+.home-v4 .section,
+.home-v4 .section.alt,
+.home-v4 .home-best,
+.home-v4 .home-wa {
+  background: var(--ivory-page) !important;
+  color: var(--ink) !important;
+}
+
+.home-v4 h1, .home-v4 h2, .home-v4 h3, .home-v4 h4,
+.home-v4 p, .home-v4 span, .home-v4 a, .home-v4 b, .home-v4 small,
+.best-card, .best-card *, .best-meta, .best-meta *,
+.home-cat, .home-cat *,
+.home-trust, .home-trust * {
+  color: var(--ink) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.home-v4 .eyebrow,
+.home-v4 .home-kicker,
+.home-v4 .home-viewall,
+.home-v4 h2 em,
+.home-v4 .title em,
+.best-price,
+.home-trust b {
+  color: var(--gold-ink) !important;
+}
+
+.best-code,
+.home-trust span,
+.home-v4 .home-wa p,
+.home-v4 .story p {
+  color: var(--ink-soft) !important;
+}
+
+/* Product page (.pd), specs, assure & buttons on light surface */
+.pd, .pd h1, .pd h2, .pd h3, .pd h4, .pd p, .pd span, .pd div, .pd a, .pd label,
+.specs, .specs li, .specs li *,
+.assure, .assure div, .assure span, .assure p,
+.crumbs, .crumbs a, .crumbs span,
+.card-code, .card-name, .pd-desc, .note {
+  color: var(--ink) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.pd .price, .pd .price *, .price b, .assure b {
+  color: var(--gold-ink) !important;
+}
+
+.assure {
+  background: var(--ivory-card) !important;
+  border-color: var(--ivory-line) !important;
+}
+
+.pd .btn-ghost, .pd a.btn-ghost, .pd button.btn-ghost {
+  color: var(--ink) !important;
+  border-color: var(--gold-ink) !important;
+  background: transparent !important;
+}
+
+.btn-gold, .pd .btn-gold, .pd-sticky-btn {
+  color: #161C33 !important;
+}
+
+/* Dark blocks must always keep light ivory / gold-light text */
+.hero, .hero *,
+.hero h1, .hero h2, .hero p, .hero span, .hero a, .hero b, .hero small, .hero button,
+.footer, .footer *,
+.footer a, .footer li, .footer p, .footer h5,
+.summary, .summary *,
+.pd-sticky-bar, .pd-sticky-bar *,
+.home-tabbar, .home-tabbar a {
+  visibility: visible !important;
+}
+
+.hero, .hero *,
+.hero h1, .hero h2, .hero span, .hero a, .hero b, .hero small, .hero button,
+.footer, .footer *, .footer li, .footer p, .footer h5,
+.summary, .summary *,
+.pd-sticky-bar, .pd-sticky-bar span {
+  color: #F7F1E3 !important;
+}
+
+.hero h1 em, .hero em,
+.hero .hero-stats b, .home-v4 .hero-facts b,
+.summary .sum-row.total b, .summary b,
+.pd-sticky-bar b,
+.footer h5 {
+  color: #F1DDA5 !important;
+}
+
+.hero p, .footer a, .footer li, .footer p {
+  color: #C9C2AE !important;
+}
+
+.hero .btn-ghost, .hero a.btn-ghost, .hero button.btn-ghost {
+  color: #F7F1E3 !important;
+  border-color: rgba(247, 241, 227, 0.55) !important;
+  background: transparent !important;
+}
+
+.hero .btn-gold, .summary .btn-gold, .summary button.btn-gold, .pd-sticky-btn {
+  color: #161C33 !important;
+}
+
+.home-tabbar a { color: #A9A394 !important; }
+.home-tabbar a.active { color: #D4B16A !important; }
+
+/* Soft subtle drop-shadow on product cards */
+.product-card, .best-card, .card {
+  border-radius: 18px !important;
+  box-shadow: 0 6px 18px rgba(18, 26, 51, 0.05),
+              0 1px 4px rgba(18, 26, 51, 0.03) !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.product-card:hover, .best-card:hover, .card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 24px rgba(18, 26, 51, 0.09),
+              0 2px 6px rgba(18, 26, 51, 0.04) !important;
+}
+
+/* Policy pages (.prose) & dark page header (.page-head) contrast fix */
+.page-head {
+  background: linear-gradient(180deg, #121A33 0%, #0B1020 100%) !important;
+}
+.page-head, .page-head *,
+.page-head h1, .page-head .title, .page-head .crumbs, .page-head .crumbs a {
+  color: #F7F1E3 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.page-head .title em {
+  color: #F1DDA5 !important;
+}
+
+.prose h2, .prose h3, .prose h4 {
+  color: #8E6A2C !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.prose p, .prose li, .prose span, .prose b, .prose strong, .prose a {
+  color: #161C33 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.prose a {
+  color: #8E6A2C !important;
+  font-weight: 600;
+}
+
+/* Help Center FAQ accordion contrast fix */
+.faq-item {
+  background: #121A33 !important;
+  border-color: rgba(212, 177, 106, 0.25) !important;
+}
+.faq-q, .faq-q span, .faq-q b, .faq-q strong {
+  color: #F7F1E3 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.faq-q i {
+  color: #F1DDA5 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.faq-a, .faq-a p, .faq-a li, .faq-a span, .faq-a a {
+  color: #E5DEC9 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}

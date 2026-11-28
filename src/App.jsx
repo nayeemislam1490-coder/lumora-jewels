@@ -4,6 +4,7 @@ import Layout from "./components/Layout.jsx";
 import Home from "./pages/Home.jsx";
 import { Shop, Product } from "./pages/Shop.jsx";
 import { Cart, Checkout } from "./pages/CartCheckout.jsx";
+import MyOrders from "./pages/MyOrders.jsx";
 import { About, Help, Contact, Policy, NotFound } from "./pages/Info.jsx";
 
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
@@ -75,6 +76,7 @@ export default function App() {
           />
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
+          <Route path="orders" element={<MyOrders />} />
           <Route path="about" element={<About />} />
           <Route path="help" element={<Help />} />
           <Route path="contact" element={<Contact />} />
